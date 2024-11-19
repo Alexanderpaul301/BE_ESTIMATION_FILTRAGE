@@ -20,7 +20,7 @@ legend('axe X','axe Y','axe Z');
 
 k_plot_image = 50; % Pour visualiser une image donnée
 
-for k = 1:5
+for k = 0:5
     [filename,err] = sprintf('image%3.3d',k);
     % image(1,:) = numéro d'amer U = image(2,:), V = image(3,:)
     image = load(filename);
@@ -105,7 +105,7 @@ for k = 1:5
         pas=10^(-2);
         g=1.622;
         X=[Xavg;
-            Yavg,
+            Yavg;
             Zavg;
             100;
             0;
@@ -206,38 +206,38 @@ for k = 1:5
             traj(2,l)=X(2);
             traj(3,l)=X(3);
             figure(1)
-            plot(mesure_accelero(100*k,1),traj(1,:));
+            plot(mesure_accelero(100*k+1,1),traj(1,:));
             hold on
-            plot(mesure_accelero(100*k,1),traj(2,:));
-            plot(mesure_accelero(100*k,1),traj(3,:));
-            hold off
+            plot(mesure_accelero(100*k+1,1),traj(2,:));
+            plot(mesure_accelero(100*k+1,1),traj(3,:));
+
 
 
             figure(1)
 
             % Subplot for traj(1,:) and X(1,1)
             subplot(3,1,1)
-            plot(mesure_accelero(100*k,1), traj(1,:), 'DisplayName', 'traj(1,:)');
+            plot(mesure_accelero(100*k+1,1), traj(1,:), 'DisplayName', 'traj(1,:)');
             hold on
-            plot(1:length(X(1,1)), X(1,1)), 'DisplayName', 'X(1,1)');
+            plot(1:length(X(1,1)), X(1,1), 'DisplayName', 'X(1,1)');
             hold off
             legend show
             title('traj(1,:) and X(1,1)')
 
             % Subplot for traj(2,:) and X(2,1)
             subplot(3,1,2)
-            plot(mesure_accelero(100*k,1), traj(2,:), 'DisplayName', 'traj(2,:)');
+            plot(mesure_accelero(100*k+1,1), traj(2,:), 'DisplayName', 'traj(2,:)');
             hold on
-            plot((1:length(X(2,1)), X(2,1)), 'DisplayName', 'X(2,1)');
+            plot(1:length(X(2,1)), X(2,1), 'DisplayName', 'X(2,1)');
             hold off
             legend show
             title('traj(2,:) and X(2,1)')
 
             % Subplot for traj(3,:) and X(3,1)
             subplot(3,1,3)
-            plot(mesure_accelero(100*k,1), traj(3,:), 'DisplayName', 'traj(3,:)');
+            plot(mesure_accelero(100*k+1,1), traj(3,:), 'DisplayName', 'traj(3,:)');
             hold on
-            plot(1:length(X(3,1)), X(3,1)), 'DisplayName', 'X(3,1)');
+            plot(1:length(X(3,1)), X(3,1), 'DisplayName', 'X(3,1)');
             hold off
             legend show
             title('traj(3,:) and X(3,1)')
