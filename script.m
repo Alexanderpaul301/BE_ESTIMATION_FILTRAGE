@@ -31,7 +31,7 @@ k_plot_image = 50;
 
 for k = 0:5
     % Chargement de l'image
-    [filename, err] = sprintf('image%3.3d', k);
+    [filename, err] = sprintf('images/image%3.3d', k);
     image = load(filename);
 
     % Affichage de l'image
