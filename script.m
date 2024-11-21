@@ -246,6 +246,7 @@ legend;
 
 %On remarque que l'on a notamment un problème sur le biais de X, qui ne commence pas à 0.
 %Il faudrait donc revoir la manière dont on initialise les biais.
+
 figure;
 plot(1:99, traj(4, :), '-r', 'DisplayName', 'Biais X'); % Biais sur X
 hold on;
