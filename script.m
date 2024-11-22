@@ -5,7 +5,7 @@ close all
 load carte.dat
 load mesure_accelero
 
-%LEGENDES
+%LÉGENDES
 % Pour carte.dat : numéro d'amer = numéro de colonne et X = carte(1,:), Y = carte(2,:) Z = carte(3,:)
 % Pour mesure_accelero : temps = mesure_accelero(:,1), aX = mesure_accelero(:,2), aY = mesure_accelero(:,3), aZ = mesure_accelero(:,4)
 % Pour image : image(1,:) = numéro d'amer, U = image(2,:), V = image(3,:)
@@ -24,6 +24,7 @@ figure
 plot(mesure_accelero(:, 1), mesure_accelero(:, 2), 'r', mesure_accelero(:, 1), mesure_accelero(:, 3), 'b', mesure_accelero(:, 1), mesure_accelero(:, 4), 'g')
 xlabel('temps (s)');
 ylabel('acceleration (m/s²)');
+title('Mesures d''accélération');
 legend('axe X', 'axe Y', 'axe Z');
 
 %Choix d'une image spécifique pour le plot
@@ -48,7 +49,7 @@ for k = 0:5
 
     % initialisez la moyenne et la covariance de l'état en utilisant
     % des couples d'amers et une idée sur la vitesse initiale et les
-    % biais des accéleromètres
+    % biais des accéléromètres
     if (k == 0)
         Xpos = [];
         Ypos = [];
@@ -125,8 +126,6 @@ for k = 0:5
 
     Y = X; % SUR ?
 
-    %COVU = [covMatrix zeros(3) zeros(3); zeros(3) covV zeros(3); zeros(3) zeros(3) covbiais];
-
     if (k ~= 100)
 
         for l = 1:1:99
@@ -144,8 +143,6 @@ for k = 0:5
                  zeros(3), zeros(3), eye(3)];
             B = [zeros(3); eye(3) * pas; zeros(3)];
             COVU = blkdiag(covMatrix, covV, covbiais);
-
-            % Prediction %
 
             %Construction de l'estimation à priori
             Z = A * Y + B * [mesure_accelero(100 * k + l, 2);
@@ -192,7 +189,7 @@ for k = 0:5
             Y = Z + K * (S - Hz);
             Pk_1 = (eye(9) - K * dHz) * COVY;
 
-            if mod(l, 50) == 0 % Enregistrer toutes les 50 itérations
+            if mod(l, 20) == 0 % Enregistrer toutes les 50 itérations
                 figure(1);
                 plot(S, 'o-', 'DisplayName', 'S (Observations)');
                 hold on;
