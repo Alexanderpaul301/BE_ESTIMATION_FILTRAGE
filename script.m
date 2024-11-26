@@ -32,7 +32,7 @@ legend('axe X', 'axe Y', 'axe Z');
 pas = 10 ^ (-2);
 g = 1.622;
 f = 512; % Distance focale
-df = 512;
+df = f;
 
 % --- INITIALISATION ---
 k_plot_image = 50;
