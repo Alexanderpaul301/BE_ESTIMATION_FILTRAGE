@@ -53,7 +53,7 @@ Sigma_biais = eye(3) * sigma_biais^2; % Incertitude sur les biais
 
 % Matrice de bruit de processus Q
 Q_pos = zeros(3);
-Q_vel = eye(3) * sigma_acc^2;
+Q_vel = eye(3) * (sigma_acc*dt)^2;
 Q_biais = zeros(3);
 Q = blkdiag(Q_pos, Q_vel, Q_biais);
 
@@ -216,18 +216,15 @@ for k = 0:num_images
     if k ~= num_images
         for l = 0:99
             a_mes = mesure_accelero(100 * k + l + 1, 2:4)'; % Accélérations mesurées
-            a_real = a_mes - mu(7:9)+ [0; 0; -g_moon]; % Accélération réelle (correction des biais)
+            a_real = a_mes - mu(7:9)+ [0; 0; -g_moon]-sigma_acc; % Accélération réelle (correction des biais)
             mu(1:3) = mu(1:3) + mu(4:6) * dt + 0.5 * a_real * dt^2; % mise a jour de la Position
             mu(4:6) = mu(4:6) + a_real * dt; % Vitesse
         end
         
         mu(1:3) = mu(1:3)/100;
         mu(4:6) = mu(4:6)/100;
+        a_real=a_real/100;
         end
-
-
-
-
 end
 
 % --- Affichage des trajectoires ---
