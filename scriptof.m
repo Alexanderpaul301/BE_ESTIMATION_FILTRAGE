@@ -187,7 +187,6 @@ for k = 0:num_images
         end
         mu(1:3) = mu(1:3)/100;
         mu(4:6) = mu(4:6)/100;
-        %mu(7:9) = mu(7:9)/100;
         Sigma  = Sigma /100;
     end
 
@@ -227,6 +226,7 @@ title('Trajectoire de l''engin');
 
 % Tracé de l'évolution des biais
 time = linspace(0, num_images, num_images + 1); % Temps correspondant aux étapes
+
 figure;
 plot(time, biais(:, 1), 'r-', 'LineWidth', 1.5);
 hold on;
@@ -238,6 +238,17 @@ ylabel('Biais (m/s²)');
 title('Évolution des biais des accéléromètres');
 legend('Biais X', 'Biais Y', 'Biais Z');
 
+
+figure;
+plot(time, biais(:, 1), 'r-', 'LineWidth', 1.5);
+hold on;
+plot(time, biais(:, 2), 'g-', 'LineWidth', 1.5);
+plot(time, biais(:, 3), 'b-', 'LineWidth', 1.5);
+grid on;
+xlabel('Temps (s)');
+ylabel('Biais (m/s²)');
+title('Évolution des U V estimer et U V observer ');
+legend('Biais X', 'Biais Y', 'Biais Z');
 
 
 
