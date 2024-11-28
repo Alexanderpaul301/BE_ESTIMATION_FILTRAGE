@@ -53,7 +53,7 @@ Sigma_biais = eye(3) * sigma_biais^2; % Incertitude sur les biais
 
 % Matrice de bruit de processus Q
 Q_pos = zeros(3);
-Q_vel = eye(3) * (sigma_acc*dt)^2;
+Q_vel = eye(3) * sigma_acc^2;
 Q_biais = zeros(3);
 Q = blkdiag(Q_pos, Q_vel, Q_biais);
 
@@ -61,8 +61,12 @@ Q = blkdiag(Q_pos, Q_vel, Q_biais);
 num_images = 100; % Nombre total d'images
 
 positions = zeros(num_images + 1, 3); % Tableau pour les positions (X, Y, Z)
-UVobserve = zeros(2,num_images + 1);
-UVestimer = zeros(2,num_images + 1);
+U_all = []; % Stockage de tous les points U
+V_all = []; % Stockage de tous les points V
+K_all = []; % Stockage des indices d'image k
+U_est = []; % Stockage de tous les points U
+V_est = []; % Stockage de tous les points V
+K_est = []; % Stockage des indices d'image k
 biais = zeros(num_images + 1, 3); % Tableau pour les biais (b_x, b_y, b_z)
 
 k_plot_image=50;
@@ -77,6 +81,7 @@ for k = 0:num_images
         error('Le fichier %s est introuvable.', filename);
     end
 
+
     if k == k_plot_image
         figure;
         plot(image(2, :), image(3, :), '.');
@@ -85,6 +90,8 @@ for k = 0:num_images
         ylabel('V');
         title(['Projection de l''image ', num2str(k)]);
     end
+
+
 % Recalage statique pour mise à jour de la position
     if k == 0
 
@@ -133,10 +140,14 @@ for k = 0:num_images
         Yavg = mean(Ypos);
         Zavg = mean(Zpos);
         Sigma_pos = cov([Xpos(:), Ypos(:), Zpos(:)]); % incertitude sur la position
-        Sigma = blkdiag(Sigma_pos, Sigma_vel , Sigma_biais); % Matrice de covariance totale
+        Sigma0 = blkdiag(Sigma_pos, Sigma_vel , Sigma_biais); % Matrice de covariance totale
+        Sigma=Sigma0;
 
         mu_pos=[Xavg; Yavg; Zavg]; %Position initiale estimée (X, Y, Z)
         mu = [mu_pos; mu_vel; mu_biais]; % Etat initial
+        % Récupération des points U et V pour cette image
+        U_pred =[]; % Coordonnées U de l'image courante
+        V_pred =[]; % Coordonnées V de l'image courante
 
     else
         % Extraction des numéros des amers observés
@@ -145,34 +156,59 @@ for k = 0:num_images
         coord_3D = [X(amers_obs); Y(amers_obs); Z(amers_obs)]; % Coordonnées réelles des amers
         
         
-        % Mise à jour avec Kalman (recalage statique)
+        %%%%
         U_pred = -f * (coord_3D(1, :) - mu(1)) ./ (coord_3D(3, :) - mu(3));
         V_pred = -f * (coord_3D(2, :) - mu(2)) ./ (coord_3D(3, :) - mu(3));
         z_pred = [U_pred'; V_pred'];
         z_obs = coord_image(:);
 
         Zest = A * mu + B * a_real;
+        Yest = A * Sigma * A'+ Sigma0*dt;
+        
         % Matrice de Jacobienne H
         H = compute_jacobian(Zest, coord_3D, f);
 
         % Innovation
-        y = z_obs - H*Zest; %z_pred;
+        
+        S = zeros(size(z_obs,1), 1);
+        for i = 1 :size(z_obs)/2
+            S(2 * i - 1)=z_obs(i);
+            S(2 * i)=z_obs(2*i);
+        end
 
         % Kalman gain
-        R = eye(size(y, 1)); % Bruit de mesure (3 pixels)
+        R = eye(size(S, 1)); % Bruit de mesure (3 pixels)
         K = Sigma * H' / (H * Sigma * H' + R);
 
         % Mise à jour de l'état et de la covariance
-        mu = Zest + K * y;
-        %Sigma = A * Sigma * A' - A * K * H * Sigma + Sigma;
-        Sigma= (eye(9) - K * H) * Sigma;
+        y = Zest + K * (S - H*Zest);% mise a jour de l'estimation aposteriorie de la position
+        Sigma= (eye(9) - K * H) * Yest;
+
+       
+       
+
     end
 
     % Enregistrement des paramètres
-    UVobserve(1,k + 1) = z_obs(1);
-    UVobserve(2,k + 1) = z_obs(2);
-    UVestimer(1,k + 1) = z_pred(1);
-    UVestimer(1,k + 1) = z_pred(1);
+
+    % Récupération des points U et V pour cette image
+    U_current = image(2, :); % Coordonnées U de l'image courante
+    V_current = image(3, :); % Coordonnées V de l'image courante
+    % Association de l'indice de l'image k à tous les points
+    K_current = k * ones(1, length(U_current)); % Même indice k pour tous les points de cette image
+    % Concaténation dans les tableaux globaux
+    U_all = [U_all, U_current]; % Ajouter les U
+    V_all = [V_all, V_current]; % Ajouter les V
+    K_all = [K_all, K_current]; % Ajouter les indices d'image
+    
+    % Association de l'indice de l'image k à tous les points
+    K_pred = k * ones(1, length(U_pred)); % Même indice k pour tous les points de cette image
+    % Concaténation dans les tableaux globaux
+    U_est = [U_est, U_pred]; % Ajouter les U estimé
+    V_est = [V_est, V_pred]; % Ajouter les V estimé
+    K_est = [K_est, K_pred]; % Ajouter les indices d'image
+
+
     positions(k + 1, :) = mu(1:3)'; % Stockage de la position (X, Y, Z)
     biais(k + 1, :) = mu(7:9)'; % Stockage des biais (b_x, b_y, b_z)
 
@@ -181,14 +217,16 @@ for k = 0:num_images
         for l = 0:99
             a_mes = mesure_accelero(100 * k + l + 1, 2:4)'; % Accélérations mesurées
             a_real = a_mes - mu(7:9)+ [0; 0; -g_moon]; % Accélération réelle (correction des biais)
-            mu(1:3) = mu(1:3) + mu(4:6) * dt + 0.5 * a_real * dt^2; % Position
-            mu(4:6) = mu(4:6) + a_real * dt; % Vitesse 
-            Sigma = A * Sigma * A'+ Q;
+            mu(1:3) = mu(1:3) + mu(4:6) * dt + 0.5 * a_real * dt^2; % mise a jour de la Position
+            mu(4:6) = mu(4:6) + a_real * dt; % Vitesse
         end
+        
         mu(1:3) = mu(1:3)/100;
         mu(4:6) = mu(4:6)/100;
-        Sigma  = Sigma /100;
-    end
+        end
+
+
+
 
 end
 
@@ -238,17 +276,17 @@ ylabel('Biais (m/s²)');
 title('Évolution des biais des accéléromètres');
 legend('Biais X', 'Biais Y', 'Biais Z');
 
-
+% --- Tracé 3D ---
 figure;
-plot(time, biais(:, 1), 'r-', 'LineWidth', 1.5);
-hold on;
-plot(time, biais(:, 2), 'g-', 'LineWidth', 1.5);
-plot(time, biais(:, 3), 'b-', 'LineWidth', 1.5);
+scatter3(K_all, U_all, V_all, 'filled'); % Points (k, U, V)
+hold on
+scatter3(K_est, U_est, V_est, 'filled'); % Points (k, U, V)
+hold off
+xlabel('Indice de l''image (k)');
+ylabel('Coordonnées U');
+zlabel('Coordonnées V');
+title('Évolution des points (U, V) en fonction des images');
 grid on;
-xlabel('Temps (s)');
-ylabel('Biais (m/s²)');
-title('Évolution des U V estimer et U V observer ');
-legend('Biais X', 'Biais Y', 'Biais Z');
 
 
 
