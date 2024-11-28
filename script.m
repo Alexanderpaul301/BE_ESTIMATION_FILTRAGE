@@ -1,5 +1,6 @@
 clear all;
 close all;
+clc;
 
 % Chargement des données
 load carte.dat
@@ -37,7 +38,7 @@ df = f;
 % --- INITIALISATION ---
 k_plot_image = 50;
 
-for k = 0:5
+for k = 0:99
     % Chargement de l'image
     filename = sprintf('images/image%3.3d', k);
     image = load(filename);
@@ -74,9 +75,15 @@ for k = 0:5
                     UB = image(2, i);
                     VB = image(3, i);
 
-                    YE = 1 / (UA / VA - UB / VB) * (XB - XA + UA / VA * YA - UB / VB * YB);
-                    XE = XA + (YE - YA) * UA / VA;
-                    ZE = ZA + df / UA * (XA - XE);
+                    
+                    if (UA ~= UB)
+                        ZE = (f * (XA - XB) + UA * ZA - UB * ZB) / (UA - UB);
+                    else
+                        ZE = (f * (YA - YB) + VA * ZA - VB * ZB) / (VA - VB);
+                    end
+
+                    XE = XA - (ZE - ZA) * UA / f;
+                    YE = YA - (ZE - ZA) * VA / f;
 
                     Xpos(n) = XE;
                     Ypos(n) = YE;
@@ -142,22 +149,22 @@ for k = 0:5
         % Mise à jour
         COVV = eye(size(Hz, 1));
         K = COVY * dHz' * (dHz * COVY * dHz' + COVV) ^ (-1);
-        X = Z + K * (S - Hz);
+        X = Z + K * (S - dHz*Z);
         Pk = (eye(9) - K * dHz) * COVY;
 
         traj(:, l) = X;
 
-        if mod(l, 20) == 0
-            figure;
-            plot(S, 'o-', 'DisplayName', 'S (Observations)');
-            hold on;
-            plot(Hz, 'x-', 'DisplayName', 'Hz (Projections estimées)');
-            legend;
-            xlabel('Index des observations');
-            ylabel('Valeur');
-            title(['Comparaison entre S et Hz à l''itération ', num2str(l)]);
-            hold off;
-        end
+        %if mod(l, 20) == 0
+           % figure;
+            %plot(S, 'o-', 'DisplayName', 'S (Observations)');
+            %hold on;
+            %plot(Hz, 'x-', 'DisplayName', 'Hz (Projections estimées)');
+            %legend;
+            %xlabel('Index des observations');
+            %ylabel('Valeur');
+            %title(['Comparaison entre S et Hz à l''itération ', num2str(l)]);
+            %hold off;
+        %end
 
     end
 
