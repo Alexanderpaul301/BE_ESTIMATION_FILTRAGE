@@ -224,7 +224,7 @@ for k = 0:num_images
         mu(1:3) = mu(1:3)/100;
         mu(4:6) = mu(4:6)/100;
         a_real=a_real/100;
-        end
+   end
 end
 
 % --- Affichage des trajectoires ---
