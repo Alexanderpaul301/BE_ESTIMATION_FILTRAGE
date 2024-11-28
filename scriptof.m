@@ -59,7 +59,10 @@ Q = blkdiag(Q_pos, Q_vel, Q_biais);
 
 % --- Boucle principale sur les images ---
 num_images = 100; % Nombre total d'images
+
 positions = zeros(num_images + 1, 3); % Tableau pour les positions (X, Y, Z)
+UVobserve = zeros(2,num_images + 1);
+UVestimer = zeros(2,num_images + 1);
 biais = zeros(num_images + 1, 3); % Tableau pour les biais (b_x, b_y, b_z)
 
 k_plot_image=50;
@@ -98,7 +101,7 @@ for k = 0:num_images
             UA = image(2, j);
             VA = image(3, j);
 
-            for i = 1:size(image, 2) % Extraction des numéros des amers observés
+            for i = j:size(image, 2) % Extraction des numéros des amers observés
 
                 if i ~= j              
                     XB = carte(1, image(1, i));
@@ -148,27 +151,28 @@ for k = 0:num_images
         z_pred = [U_pred'; V_pred'];
         z_obs = coord_image(:);
 
-        
-
-        %Zest = A * mu + B * a_real;
+        Zest = A * mu + B * a_real;
         % Matrice de Jacobienne H
-        H = compute_jacobian(mu, coord_3D, f);
+        H = compute_jacobian(Zest, coord_3D, f);
 
         % Innovation
-        y = z_obs - H*mu; %z_pred;
+        y = z_obs - H*Zest; %z_pred;
 
         % Kalman gain
         R = eye(size(y, 1)); % Bruit de mesure (3 pixels)
         K = Sigma * H' / (H * Sigma * H' + R);
 
         % Mise à jour de l'état et de la covariance
-        mu = mu + K * y;
-        %mu = mu + K * y;
-        Sigma = A * Sigma * A' - A * K * H * Sigma + Sigma;
+        mu = Zest + K * y;
+        %Sigma = A * Sigma * A' - A * K * H * Sigma + Sigma;
         Sigma= (eye(9) - K * H) * Sigma;
     end
 
-    % Enregistrement de la position et des biais estimés
+    % Enregistrement des paramètres
+    UVobserve(1,k + 1) = z_obs(1);
+    UVobserve(2,k + 1) = z_obs(2);
+    UVestimer(1,k + 1) = z_pred(1);
+    UVestimer(1,k + 1) = z_pred(1);
     positions(k + 1, :) = mu(1:3)'; % Stockage de la position (X, Y, Z)
     biais(k + 1, :) = mu(7:9)'; % Stockage des biais (b_x, b_y, b_z)
 
@@ -235,32 +239,6 @@ title('Évolution des biais des accéléromètres');
 legend('Biais X', 'Biais Y', 'Biais Z');
 
 
-% --- Fonctions auxiliaires ---
-function H = compute_jacobian(mu, coord_3D, f)
-    X_e = mu(1);
-    Y_e = mu(2);
-    Z_e = mu(3);
-    n = size(coord_3D, 2); % Nombre d'amers observés
-    H = zeros(2 * n, length(mu));
-    for i = 1:n
-        X_A = coord_3D(1, i);
-        Y_A = coord_3D(2, i);
-        Z_A = coord_3D(3, i);
-        dZ = Z_A - Z_e;
-        dX = X_A - X_e;
-        dY = Y_A - Y_e;
 
-        % Jacobienne pour U
-        H(2 * i - 1, 1) = -f / dZ;
-        H(2 * i - 1, 3) = f * dX / dZ^2;
 
-        % Jacobienne pour V
-        H(2 * i, 2) = -f / dZ;
-        H(2 * i, 3) = f * dY / dZ^2;
-    end
-end
 
-function [A,B]= compute_transition_matrix(dt)
-    A = [eye(3), eye(3) * dt, zeros(3); zeros(3), eye(3), -eye(3) * dt; zeros(3), zeros(3), eye(3)];
-    B = [zeros(3); eye(3) * dt; zeros(3)];
-end
