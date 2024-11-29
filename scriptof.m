@@ -140,8 +140,8 @@ for k = 0:num_images
         Yavg = mean(Ypos);
         Zavg = mean(Zpos);
         Sigma_pos = cov([Xpos(:), Ypos(:), Zpos(:)]); % incertitude sur la position
-        Sigma0 = blkdiag(Sigma_pos, Sigma_vel , Sigma_biais); % Matrice de covariance totale
-        Sigma=Sigma0;
+        Sigma = blkdiag(Sigma_pos, Sigma_vel , Sigma_biais); % Matrice de covariance totale
+
 
         mu_pos=[Xavg; Yavg; Zavg]; %Position initiale estimée (X, Y, Z)
         mu = [mu_pos; mu_vel; mu_biais]; % Etat initial
@@ -163,24 +163,24 @@ for k = 0:num_images
         z_obs = coord_image(:);
 
         Zest = A * mu + B * a_real;
-        Yest = A * Sigma * A'+ Sigma0*dt;
+        Yest = A * Sigma * A'+ Q*dt;
 
         % Matrice de Jacobienne H
         H = compute_jacobian(Zest, coord_3D, f); % Taille m x n
 
         % Matrice d'observation S
-        S = zeros(size(z_obs,1), 1);
-        for i = 1 :size(z_obs)/2
-            S(2 * i - 1)=z_obs(i);
-            S(2 * i)=z_obs(2*i);
+        S = zeros(size(U_pred,1), 1);
+        for i = 1 :size(U_pred)/2
+            S(2 * i - 1)=image(2, i)-U_pred(i);
+            S(2 * i)=image(3, i)-V_pred(i);
         end
         % Kalman gain (avec régularisation pour stabilisation)
-        R = eye(size(S, 1)) ; % Bruit de mesure régularisé
-        K = Sigma * H' * inv(H * Sigma * H' + R); % Gain de Kalman
+        R = eye(size(S, 1))+ 1e-6*eye(size(S, 1)) ; % Bruit de mesure régularisé
+        K = Yest * H' * inv(H * Yest * H' + R); % Gain de Kalman
     
         % Mise à jour de l'état et de la covariance
-        y = Zest + K * (S - H * Zest); % Mise à jour de l'estimation a posteriori
-        Sigma = (eye(size(Sigma)) - K * H) * Sigma; % Mise à jour de la covariance
+        mu = Zest + K * S % Mise à jour de l'estimation a posteriori
+        Sigma = (eye(size(Sigma)) - K * H) * Yest; % Mise à jour de la covariance
        
 
     end
@@ -212,9 +212,9 @@ for k = 0:num_images
     if k ~= num_images
         for l = 0:99
             a_mes = mesure_accelero(100 * k + l + 1, 2:4)'; % Accélérations mesurées
-            a_real = a_mes - mu(7:9) + [0; 0; -g_moon]-[sigma_acc; sigma_acc; sigma_acc]; % Accélération réelle (correction des biais)
-            mu(1:3) = mu(1:3) + mu(4:6) * dt - 0.5 * a_real * dt^2; % mise a jour de la Position
-            mu(4:6) = mu(4:6) - a_real * dt; % Vitesse
+            a_real = a_mes - mu(7:9) + [0; 0; -g_moon]; % Accélération réelle (correction des biais)
+            mu(1:3) = mu(1:3) + mu(4:6) * dt + 0.5 * a_real * dt^2; % mise a jour de la Position
+            Zest = mu(4:6) + a_real * dt; % Vitesse
         end
         %mu(1:3) = mu(1:3)/100;
         %mu(4:6) = mu(4:6)/100;
