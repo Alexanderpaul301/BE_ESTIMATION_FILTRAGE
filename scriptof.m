@@ -274,6 +274,7 @@ scatter3(K_all, U_all, V_all, 'filled'); % Points (k, U, V)
 hold on
 scatter3(K_est, U_est, V_est, 'filled'); % Points (k, U, V)
 hold off
+legend('observée','estimée');
 xlabel('Indice de l''image (k)');
 ylabel('Coordonnées U');
 zlabel('Coordonnées V');
