@@ -175,11 +175,11 @@ for k = 0:num_images
             S(2 * i)=image(3, i)-V_pred(i);
         end
         % Kalman gain (avec régularisation pour stabilisation)
-        R = eye(size(S, 1))+ 1e-6*eye(size(S, 1)) ; % Bruit de mesure régularisé
+        R = eye(size(S, 1)); % Bruit de mesure régularisé
         K = Yest * H' * inv(H * Yest * H' + R); % Gain de Kalman
     
         % Mise à jour de l'état et de la covariance
-        mu = Zest + K * S; % Mise à jour de l'estimation a posteriori
+        y = Zest + K * S; % Mise à jour de l'estimation a posteriori
         Sigma = (eye(size(Sigma)) - K * H) * Yest; % Mise à jour de la covariance
        
 
