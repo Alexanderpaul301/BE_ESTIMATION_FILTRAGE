@@ -175,9 +175,8 @@ for k = 0:num_images
             S(2 * i)=z_obs(2*i);
         end
         % Kalman gain (avec régularisation pour stabilisation)
-        epsilon = 0; % Petite régularisation pour éviter les matrices mal conditionnées
-        R = eye(size(S, 1)) + epsilon * eye(size(S, 1)); % Bruit de mesure régularisé
-        K = Sigma * H' / (H * Sigma * H' + R); % Gain de Kalman
+        R = eye(size(S, 1)) ; % Bruit de mesure régularisé
+        K = Sigma * H' * inv(H * Sigma * H' + R); % Gain de Kalman
     
         % Mise à jour de l'état et de la covariance
         y = Zest + K * (S - H * Zest); % Mise à jour de l'estimation a posteriori
@@ -214,8 +213,8 @@ for k = 0:num_images
         for l = 0:99
             a_mes = mesure_accelero(100 * k + l + 1, 2:4)'; % Accélérations mesurées
             a_real = a_mes - mu(7:9) + [0; 0; -g_moon]-[sigma_acc; sigma_acc; sigma_acc]; % Accélération réelle (correction des biais)
-            mu(1:3) = mu(1:3) + mu(4:6) * dt + 0.5 * a_real * dt^2; % mise a jour de la Position
-            mu(4:6) = mu(4:6) + a_real * dt; % Vitesse
+            mu(1:3) = mu(1:3) + mu(4:6) * dt - 0.5 * a_real * dt^2; % mise a jour de la Position
+            mu(4:6) = mu(4:6) - a_real * dt; % Vitesse
         end
         %mu(1:3) = mu(1:3)/100;
         %mu(4:6) = mu(4:6)/100;
