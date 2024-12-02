@@ -173,7 +173,9 @@ for k = 0:num_images
         for i = 1 :size(image(2, :),1)/2
             S(2 * i - 1)=image(2, i)-U_pred(i);
             S(2 * i)=image(3, i)-V_pred(i);
+            
         end
+        
         % Kalman gain (avec régularisation pour stabilisation)
         R = eye(size(S, 1)); % Bruit de mesure régularisé
         K = Yest * H' * inv(H * Yest * H' + R); % Gain de Kalman
