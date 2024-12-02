@@ -176,8 +176,8 @@ for k = 0:num_images
         % Matrice d'observation S
         S = zeros(size(K,2), 1);
         for i = 1 :size(K,2)/2
-            S(2 * i - 1)=z_obs(1, i)-z_pred (1,i);
-            S(2 * i)=z_obs(2, i)-z_pred(2,i);   
+            S(2 * i)=z_obs(1, i)-z_pred (1,i);
+            S(2 * i- 1)=z_obs(2, i)-z_pred(2,i);   
         end
 
         % Mise à jour de l'état et de la covariance
@@ -215,8 +215,8 @@ for k = 0:num_images
         for l = 0:99
             a_mes = mesure_accelero(100 * k + l + 1, 2:4)'; % Accélérations mesurées
             a_real = a_mes - mu(7:9) + [0; 0; -g_moon]-[sigma_acc; sigma_acc; sigma_acc]; % Accélération réelle (correction des biais)
-            mu(1:3) = mu(1:3) + mu(4:6) * dt + 0.5 * a_real * dt^2; % mise a jour de la Position
-            Zest = mu(4:6) + a_real * dt; % Vitesse
+            %mu(1:3) = mu(1:3) + mu(4:6) * dt + 0.5 * a_real * dt^2; % mise a jour de la Position
+            %Zest = mu(4:6) + a_real * dt; % Vitesse
         end
    end
 end
