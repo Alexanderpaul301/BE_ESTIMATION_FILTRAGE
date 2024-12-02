@@ -75,7 +75,6 @@ for k = 0:99
                     UB = image(2, i);
                     VB = image(3, i);
 
-                    
                     if (UA ~= UB)
                         ZE = (f * (XA - XB) + UA * ZA - UB * ZB) / (UA - UB);
                     else
@@ -124,9 +123,15 @@ for k = 0:99
         % Prédiction
         Z = A * X + B * [mesure_accelero(100 * k + l, 2); mesure_accelero(100 * k + l, 3); mesure_accelero(100 * k + l, 4) - g];
         COVY = A * Pk * A' + COVU;
+        assert(all(size(COVY) == [9, 9]), 'Dimensions inattendues pour COVY.'); % vérifie dimensions ok
 
         % Recalage
-        S = reshape(image(2:end, :), [], 1);
+        if size(image, 1) > 1
+            S = reshape(image(2:end, :), [], 1);
+            fprintf('S = %s\n', mat2str(S));
+        else
+            error('The image matrix does not have enough rows to be reshaped.');
+        end
         n = size(image, 2);
         Hz = zeros(2 * n, 1);
         dHz = zeros(9, 2 * n);
@@ -149,21 +154,21 @@ for k = 0:99
         % Mise à jour
         COVV = eye(size(Hz, 1));
         K = COVY * dHz' * (dHz * COVY * dHz' + COVV) ^ (-1);
-        X = Z + K * (S - dHz*Z);
+        X = Z + K * (S - dHz * Z);
         Pk = (eye(9) - K * dHz) * COVY;
 
         traj(:, l) = X;
 
         %if mod(l, 20) == 0
-           % figure;
-            %plot(S, 'o-', 'DisplayName', 'S (Observations)');
-            %hold on;
-            %plot(Hz, 'x-', 'DisplayName', 'Hz (Projections estimées)');
-            %legend;
-            %xlabel('Index des observations');
-            %ylabel('Valeur');
-            %title(['Comparaison entre S et Hz à l''itération ', num2str(l)]);
-            %hold off;
+        % figure;
+        %plot(S, 'o-', 'DisplayName', 'S (Observations)');
+        %hold on;
+        %plot(Hz, 'x-', 'DisplayName', 'Hz (Projections estimées)');
+        %legend;
+        %xlabel('Index des observations');
+        %ylabel('Valeur');
+        %title(['Comparaison entre S et Hz à l''itération ', num2str(l)]);
+        %hold off;
         %end
 
     end
