@@ -160,7 +160,8 @@ for k = 0:num_images
         U_pred = -f * (coord_3D(1, :) - mu(1)) ./ (coord_3D(3, :) - mu(3));
         V_pred = -f * (coord_3D(2, :) - mu(2)) ./ (coord_3D(3, :) - mu(3));
         z_pred = [U_pred; V_pred];
-        z_obs = coord_image(:);
+        z_obs = coord_image;
+
 
         Zest = A * mu + B * a_real;
         Yest = A * Sigma * A'+ Q*dt;
@@ -175,8 +176,8 @@ for k = 0:num_images
         % Matrice d'observation S
         S = zeros(size(K,2), 1);
         for i = 1 :size(K,2)/2
-            S(2 * i - 1)=image(2, i)-U_pred(i);
-            S(2 * i)=image(3, i)-V_pred(i);   
+            S(2 * i - 1)=z_obs(1, i)-z_pred (1,i);
+            S(2 * i)=z_obs(2, i)-z_pred(2,i);   
         end
 
         % Mise à jour de l'état et de la covariance
