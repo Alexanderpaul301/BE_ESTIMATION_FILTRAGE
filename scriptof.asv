@@ -58,7 +58,7 @@ Q_biais = zeros(3);
 Q = blkdiag(Q_pos, Q_vel, Q_biais);
 
 % --- Boucle principale sur les images ---
-num_images = 100; % Nombre total d'images
+num_images = 10; % Nombre total d'images
 
 positions = zeros(num_images + 1, 3); % Tableau pour les positions (X, Y, Z)
 U_all = []; % Stockage de tous les points U
@@ -179,7 +179,7 @@ for k = 0:num_images
 
         % Mise à jour de l'état et de la covariance
         mu = Zest + K * S; % Mise à jour de l'estimation a posteriori (y=mu)
-        Sigma = (eye(size(Sigma)) - K * H) * Yest; % Mise à jour de la covariance (sigma = P)
+        Sigma = (eye(size(Sigma)) - K * H) * Yest; % Mise à jour de la covariance 
        
 
     end
@@ -224,8 +224,8 @@ for k = 0:num_images
             bruit = normrnd(0, sigma_acc, [3, 1]); % Bruit gaussien ajouté à l'estimation
             a_real = a_real + bruit; % Accélération corrigée avec bruit
             
-            Zest = A * Zest + B * a_real;
-            Yest = A * Yest * A'+ Q*dt;
+            mu = A * mu + B * a_real;
+            Yest = A * si * A'+ Q*dt;
         end
    end
 end

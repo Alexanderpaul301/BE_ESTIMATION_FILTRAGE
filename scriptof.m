@@ -58,7 +58,7 @@ Q_biais = zeros(3);
 Q = blkdiag(Q_pos, Q_vel, Q_biais);
 
 % --- Boucle principale sur les images ---
-num_images = 4; % Nombre total d'images
+num_images = 10; % Nombre total d'images
 
 positions = zeros(num_images + 1, 3); % Tableau pour les positions (X, Y, Z)
 U_all = []; % Stockage de tous les points U
@@ -159,8 +159,8 @@ for k = 0:num_images
         %%%%
         U_pred = -f * (coord_3D(1, :) - mu(1)) ./ (coord_3D(3, :) - mu(3));
         V_pred = -f * (coord_3D(2, :) - mu(2)) ./ (coord_3D(3, :) - mu(3));
-        z_pred = [U_pred; V_pred]
-        z_obs = coord_image
+        z_pred = [U_pred; V_pred];
+        z_obs = coord_image;
 
         % Matrice de Jacobienne H
         H = compute_jacobian(Zest, coord_3D, f); % Taille m x n
@@ -179,7 +179,7 @@ for k = 0:num_images
 
         % Mise à jour de l'état et de la covariance
         mu = Zest + K * S; % Mise à jour de l'estimation a posteriori (y=mu)
-        Sigma = (eye(size(Sigma)) - K * H) * Yest; % Mise à jour de la covariance (sigma = P)
+        Sigma = (eye(size(Sigma)) - K * H) * Yest; % Mise à jour de la covariance 
        
 
     end
