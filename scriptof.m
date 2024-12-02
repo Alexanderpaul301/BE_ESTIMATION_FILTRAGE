@@ -162,10 +162,6 @@ for k = 0:num_images
         z_pred = [U_pred; V_pred];
         z_obs = coord_image;
 
-
-        Zest = A * mu + B * a_real;
-        Yest = A * Sigma * A'+ Q*dt;
-
         % Matrice de Jacobienne H
         H = compute_jacobian(Zest, coord_3D, f); % Taille m x n
 
@@ -212,11 +208,13 @@ for k = 0:num_images
 
     % Intégration dynamique entre les images
     if k ~= num_images
+        Zest=mu;
+        Yest = Sigma;
         for l = 0:99
             a_mes = mesure_accelero(100 * k + l + 1, 2:4)'; % Accélérations mesurées
-            a_real = a_mes - mu(7:9) + [0; 0; -g_moon]-[sigma_acc; sigma_acc; sigma_acc]; % Accélération réelle (correction des biais)
-            mu(1:3) = mu(1:3) + mu(4:6) * dt + 0.5 * a_real * dt^2; % mise a jour de la Position
-            Zest = mu(4:6) + a_real * dt; % Vitesse
+            a_real = a_mes - mu(7:9) + [0; 0; -g_moon];%+[sigma_acc; sigma_acc; sigma_acc]; % Accélération réelle (correction des biais)
+            Zest = A * Zest + B * a_real;
+            Yest = A * Yest * A'+ Q*dt;
         end
    end
 end
