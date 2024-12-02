@@ -160,7 +160,8 @@ for k = 0:num_images
         U_pred = -f * (coord_3D(1, :) - mu(1)) ./ (coord_3D(3, :) - mu(3));
         V_pred = -f * (coord_3D(2, :) - mu(2)) ./ (coord_3D(3, :) - mu(3));
         z_pred = [U_pred; V_pred];
-        z_obs = coord_image(:);
+        z_obs = coord_image;
+
 
         Zest = A * mu + B * a_real;
         Yest = A * Sigma * A'+ Q*dt;
@@ -168,19 +169,19 @@ for k = 0:num_images
         % Matrice de Jacobienne H
         H = compute_jacobian(Zest, coord_3D, f); % Taille m x n
 
+        % Kalman gain (avec régularisation pour stabilisation)
+        R = eye(size(image(2, :),1)); % Bruit de mesure régularisé
+        K = Yest * H' * inv(H * Yest * H' + R); % Gain de Kalman
+
         % Matrice d'observation S
-        S = zeros(size(image(2, :),1), 1);
-        for i = 1 :size(image(2, :),1)/2
-            S(2 * i - 1)=image(2, i)-U_pred(i);
-            S(2 * i)=image(3, i)-V_pred(i);
+        S = zeros(size(K,2), 1);
+        for i = 1 :size(K,2)/2
+            S(2 * i)=z_obs(1, i)-z_pred (1,i);
+            S(2 * i- 1)=z_obs(2, i)-z_pred(2,i);   
         end
-        % Kalman gain (with regularization for stabilization)
-        R = eye(size(S, 1)); % Measurement noise regularized
-        lambda = 1e-5; % Regularization parameter
-        K = Yest * H' * inv(H * Yest * H' + R + lambda * eye(size(H * Yest * H' + R))); % Kalman gain with regularization
-    
+
         % Mise à jour de l'état et de la covariance
-        y = Zest + K * S; % Mise à jour de l'estimation a posteriori (y=mu)
+        mu = Zest + K * S; % Mise à jour de l'estimation a posteriori (y=mu)
         Sigma = (eye(size(Sigma)) - K * H) * Yest; % Mise à jour de la covariance (sigma = P)
        
 
@@ -214,8 +215,8 @@ for k = 0:num_images
         for l = 0:99
             a_mes = mesure_accelero(100 * k + l + 1, 2:4)'; % Accélérations mesurées
             a_real = a_mes - mu(7:9) + [0; 0; -g_moon]-[sigma_acc; sigma_acc; sigma_acc]; % Accélération réelle (correction des biais)
-            mu(1:3) = mu(1:3) + mu(4:6) * dt + 0.5 * a_real * dt^2; % mise a jour de la Position
-            Zest = mu(4:6) + a_real * dt; % Vitesse
+            %mu(1:3) = mu(1:3) + mu(4:6) * dt + 0.5 * a_real * dt^2; % mise a jour de la Position
+            %Zest = mu(4:6) + a_real * dt; % Vitesse
         end
    end
 end
