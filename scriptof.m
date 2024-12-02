@@ -58,7 +58,7 @@ Q_biais = zeros(3);
 Q = blkdiag(Q_pos, Q_vel, Q_biais);
 
 % --- Boucle principale sur les images ---
-num_images = 100; % Nombre total d'images
+num_images = 4; % Nombre total d'images
 
 positions = zeros(num_images + 1, 3); % Tableau pour les positions (X, Y, Z)
 U_all = []; % Stockage de tous les points U
@@ -159,8 +159,8 @@ for k = 0:num_images
         %%%%
         U_pred = -f * (coord_3D(1, :) - mu(1)) ./ (coord_3D(3, :) - mu(3));
         V_pred = -f * (coord_3D(2, :) - mu(2)) ./ (coord_3D(3, :) - mu(3));
-        z_pred = [U_pred; V_pred];
-        z_obs = coord_image;
+        z_pred = [U_pred; V_pred]
+        z_obs = coord_image
 
         % Matrice de Jacobienne H
         H = compute_jacobian(Zest, coord_3D, f); % Taille m x n
@@ -169,6 +169,7 @@ for k = 0:num_images
         R = eye(size(image(2, :),1)); % Bruit de mesure régularisé
         K = Yest * H' * inv(H * Yest * H' + R); % Gain de Kalman
 
+     
         % Matrice d'observation S
         S = zeros(size(K,2), 1);
         for i = 1 :size(K,2)/2
@@ -212,7 +213,17 @@ for k = 0:num_images
         Yest = Sigma;
         for l = 0:99
             a_mes = mesure_accelero(100 * k + l + 1, 2:4)'; % Accélérations mesurées
-            a_real = a_mes - mu(7:9) + [0; 0; -g_moon];%+[sigma_acc; sigma_acc; sigma_acc]; % Accélération réelle (correction des biais)
+
+            % Gestion des biais estimés
+            biais_estim = mu(7:9);
+
+            % Calcul de l'accélération corrigée
+            a_real = a_mes - biais_estim + [0; 0; -g_moon]; % Correction des biais et ajout de la gravité
+
+            % Ajout d'une modélisation du bruit (incertitude sur a_real)
+            bruit = normrnd(0, sigma_acc, [3, 1]); % Bruit gaussien ajouté à l'estimation
+            a_real = a_real + bruit; % Accélération corrigée avec bruit
+            
             Zest = A * Zest + B * a_real;
             Yest = A * Yest * A'+ Q*dt;
         end
