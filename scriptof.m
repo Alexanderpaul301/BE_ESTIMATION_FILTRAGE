@@ -168,6 +168,7 @@ for k = 0:num_images
         % Matrice de Jacobienne H
         H = compute_jacobian(Zest, coord_3D, f); % Taille m x n
 
+<<<<<<< HEAD
         % Kalman gain (avec régularisation pour stabilisation)
         R = eye(size(image(2, :),1)); % Bruit de mesure régularisé
         K = Yest * H' * inv(H * Yest * H' + R); % Gain de Kalman
@@ -178,6 +179,18 @@ for k = 0:num_images
             S(2 * i - 1)=image(2, i)-U_pred(i);
             S(2 * i)=image(3, i)-V_pred(i);   
         end
+=======
+        % Matrice d'observation S
+        S = zeros(size(image(2, :),1), 1);
+        for i = 1 :size(image(2, :),1)/2
+            S(2 * i - 1)=image(2, i)-U_pred(i);
+            S(2 * i)=image(3, i)-V_pred(i);
+        end
+        % Kalman gain (with regularization for stabilization)
+        R = eye(size(S, 1)); % Measurement noise regularized
+        lambda = 1e-5; % Regularization parameter
+        K = Yest * H' * inv(H * Yest * H' + R + lambda * eye(size(H * Yest * H' + R))); % Kalman gain with regularization
+>>>>>>> 9ace048320117eee9176bb8fe823b5eb7a709962
     
         % Mise à jour de l'état et de la covariance
         mu = Zest + K * S; % Mise à jour de l'estimation a posteriori (y=mu)
@@ -278,7 +291,3 @@ ylabel('Coordonnées U');
 zlabel('Coordonnées V');
 title('Évolution des points (U, V) en fonction des images');
 grid on;
-
-
-
-
