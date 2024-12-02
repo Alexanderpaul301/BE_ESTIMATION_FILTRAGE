@@ -221,8 +221,8 @@ for k = 0:num_images
             a_real = a_mes - biais_estim + [0; 0; -g_moon]; % Correction des biais et ajout de la gravité
 
             % Ajout d'une modélisation du bruit (incertitude sur a_real)
-            bruit = normrnd(0, sigma_acc, [3, 1]); % Bruit gaussien ajouté à l'estimation
-            a_real = a_real + bruit; % Accélération corrigée avec bruit
+            % bruit = [sigma_acc,sigma_acc,sigma_acc]; %normrnd(0, sigma_acc, [3, 1]); % Bruit gaussien ajouté à l'estimation
+            % a_real = a_real + bruit; % Accélération corrigée avec bruit
             
             Zest = A * Zest + B * a_real;
             Yest = A * Yest * A'+ Q*dt;
