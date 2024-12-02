@@ -169,8 +169,8 @@ for k = 0:num_images
         H = compute_jacobian(Zest, coord_3D, f); % Taille m x n
 
         % Matrice d'observation S
-        S = zeros(size(U_pred,1), 1);
-        for i = 1 :size(U_pred)/2
+        S = zeros(size(image(2, :),1), 1);
+        for i = 1 :size(image(2, :),1)/2
             S(2 * i - 1)=image(2, i)-U_pred(i);
             S(2 * i)=image(3, i)-V_pred(i);
         end
@@ -179,8 +179,8 @@ for k = 0:num_images
         K = Yest * H' * inv(H * Yest * H' + R); % Gain de Kalman
     
         % Mise à jour de l'état et de la covariance
-        y = Zest + K * S; % Mise à jour de l'estimation a posteriori
-        Sigma = (eye(size(Sigma)) - K * H) * Yest; % Mise à jour de la covariance
+        y = Zest + K * S; % Mise à jour de l'estimation a posteriori (y=mu)
+        Sigma = (eye(size(Sigma)) - K * H) * Yest; % Mise à jour de la covariance (sigma = P)
        
 
     end
