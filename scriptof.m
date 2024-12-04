@@ -58,7 +58,7 @@ Q_biais = zeros(3);
 Q = blkdiag(Q_pos, Q_vel, Q_biais);
 
 % --- Boucle principale sur les images ---
-num_images = 2; % Nombre total d'images
+num_images = 100; % Nombre total d'images
 
 positions = zeros(num_images + 1, 3); % Tableau pour les positions (X, Y, Z)
 U_all = []; % Stockage de tous les points U
@@ -133,7 +133,6 @@ for k = 0:num_images
     end
 
     %% Enregistrement des paramètres
-
     % Récupération des points U et V pour cette image
     U_current = image(2, :); % Coordonnées U de l'image courante
     V_current = image(3, :); % Coordonnées V de l'image courante
