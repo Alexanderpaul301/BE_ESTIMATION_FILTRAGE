@@ -81,6 +81,11 @@ for k = 0:num_images
         error('Le fichier %s est introuvable.', filename);
     end
 
+    % Extraction des numéros des amers observés
+    amers_obs = image(1, :); % Numéros des amers visibles
+    coord_image = [image(2, :); image(3, :)]; % Coordonnées (U, V)
+    coord_3D = [X(amers_obs); Y(amers_obs); Z(amers_obs)]; % Coordonnées réelles des amers
+
 
     if k == k_plot_image
         figure;
@@ -92,22 +97,17 @@ for k = 0:num_images
     end
 
 
-% Recalage statique pour mise à jour de la position
+%% Recalage statique pour mise à jour de la position
     if k == 0
-        
         [mu, Sigma] = initialize_filter(image, carte, f,Sigma_vel,Sigma_biais,mu_vel,mu_biais);
 
         % Récupération des points U et V pour cette image
         U_pred =[]; % Coordonnées U de l'image courante
         V_pred =[]; % Coordonnées V de l'image courante
 
+ 
     else
-        % Extraction des numéros des amers observés
-        amers_obs = image(1, :); % Numéros des amers visibles
-        coord_image = [image(2, :); image(3, :)]; % Coordonnées (U, V)
-        coord_3D = [X(amers_obs); Y(amers_obs); Z(amers_obs)]; % Coordonnées réelles des amers
-
-        %%%%
+        %%
         U_pred = -f * (coord_3D(1, :) - mu(1)) ./ (coord_3D(3, :) - mu(3));
         V_pred = -f * (coord_3D(2, :) - mu(2)) ./ (coord_3D(3, :) - mu(3));
         z_pred = [U_pred; V_pred];
@@ -132,7 +132,7 @@ for k = 0:num_images
         Sigma = (eye(size(Sigma)) - K * H) * Yest; % Mise à jour de la covariance 
     end
 
-    % Enregistrement des paramètres
+    %% Enregistrement des paramètres
 
     % Récupération des points U et V pour cette image
     U_current = image(2, :); % Coordonnées U de l'image courante
@@ -155,7 +155,7 @@ for k = 0:num_images
     positions(k + 1, :) = mu(1:3)'; % Stockage de la position (X, Y, Z)
     biais(k + 1, :) = mu(7:9)'; % Stockage des biais (b_x, b_y, b_z)
 
-    % Intégration dynamique entre les images
+    %% Intégration dynamique entre les images
     if k ~= num_images
         Zest=mu;
         Yest = Sigma;
