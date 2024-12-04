@@ -58,7 +58,7 @@ Q_biais = zeros(3);
 Q = blkdiag(Q_pos, Q_vel, Q_biais);
 
 % --- Boucle principale sur les images ---
-num_images = 10; % Nombre total d'images
+num_images = 100; % Nombre total d'images
 
 positions = zeros(num_images + 1, 3); % Tableau pour les positions (X, Y, Z)
 U_all = []; % Stockage de tous les points U
@@ -154,16 +154,15 @@ for k = 0:num_images
         amers_obs = image(1, :); % Numéros des amers visibles
         coord_image = [image(2, :); image(3, :)]; % Coordonnées (U, V)
         coord_3D = [X(amers_obs); Y(amers_obs); Z(amers_obs)]; % Coordonnées réelles des amers
-        
-        
+
         %%%%
         U_pred = -f * (coord_3D(1, :) - mu(1)) ./ (coord_3D(3, :) - mu(3));
         V_pred = -f * (coord_3D(2, :) - mu(2)) ./ (coord_3D(3, :) - mu(3));
-        z_pred = [U_pred; V_pred]
-        z_obs = coord_image
+        z_pred = [U_pred; V_pred];
+        z_obs = coord_image;
 
         % Matrice de Jacobienne H
-        H = compute_jacobian(Zest, coord_3D, f); % Taille m x n
+        H = compute_jacobian(mu, coord_3D, f); % Taille m x n
 
         % Kalman gain (avec régularisation pour stabilisation)
         R = eye(size(image(2, :),1)); % Bruit de mesure régularisé
@@ -178,10 +177,8 @@ for k = 0:num_images
         end
 
         % Mise à jour de l'état et de la covariance
-        mu = Zest + K * S; % Mise à jour de l'estimation a posteriori (y=mu)
+        mu = Zest + K *S; % Mise à jour de l'estimation a posteriori (y=mu)
         Sigma = (eye(size(Sigma)) - K * H) * Yest; % Mise à jour de la covariance 
-       
-
     end
 
     % Enregistrement des paramètres
@@ -221,11 +218,11 @@ for k = 0:num_images
             a_real = a_mes - biais_estim + [0; 0; -g_moon]; % Correction des biais et ajout de la gravité
 
             % Ajout d'une modélisation du bruit (incertitude sur a_real)
-            bruit = normrnd(0, sigma_acc, [3, 1]); % Bruit gaussien ajouté à l'estimation
-            a_real = a_real + bruit; % Accélération corrigée avec bruit
+            %bruit = [sigma_acc,sigma_acc,sigma_acc]; %normrnd(0, sigma_acc, [3, 1]); % Bruit gaussien ajouté à l'estimation
+            %a_real = a_real + bruit; % Accélération corrigée avec bruit
             
-            mu = A * mu + B * a_real;
-            Yest = A * si * A'+ Q*dt;
+            Zest = A * Zest + B * a_real;
+            Yest = A * Yest * A'+ Q*dt;
         end
    end
 end
@@ -287,4 +284,11 @@ xlabel('Indice de l''image (k)');
 ylabel('Coordonnées U');
 zlabel('Coordonnées V');
 title('Évolution des points (U, V) en fonction des images');
+grid on;
+
+figure;
+plot(S, 'o-');
+title('Innovation (z_{obs} - z_{pred})');
+xlabel('Indice d observation');
+ylabel('Erreur');
 grid on;
