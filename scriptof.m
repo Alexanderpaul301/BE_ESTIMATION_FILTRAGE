@@ -117,7 +117,7 @@ for k = 0:num_images
         H = compute_jacobian(mu, coord_3D, f); % Taille m x n
 
         % Kalman gain (avec régularisation pour stabilisation)
-        R = eye(size(image(2, :),1))* 3^2; % Bruit de mesure régularisé
+        R = eye(size(image(2, :),1)); % Bruit de mesure régularisé
         K = Yest * H' * inv(H * Yest * H' + R); % Gain de Kalman
 
         % Matrice d'observation S
