@@ -117,7 +117,7 @@ for k = 0:num_images
         H = compute_jacobian(mu, coord_3D, f); % Taille m x n
 
         % Kalman gain (avec régularisation pour stabilisation)
-        R = eye(size(image(2, :),1)); % Bruit de mesure régularisé
+        R = eye(size(image(2, :),1))* 3^2; % Bruit de mesure régularisé
         K = Yest * H' * inv(H * Yest * H' + R); % Gain de Kalman
 
         % Matrice d'observation S
@@ -130,6 +130,8 @@ for k = 0:num_images
         % Mise à jour de l'état et de la covariance
         mu = Zest + K *S; % Mise à jour de l'estimation a posteriori (y=mu)
         Sigma = (eye(size(Sigma)) - K * H) * Yest; % Mise à jour de la covariance 
+
+       
     end
 
     %% Enregistrement des paramètres
@@ -161,18 +163,16 @@ for k = 0:num_images
         for l = 0:99
             a_mes = mesure_accelero(100 * k + l + 1, 2:4)'; % Accélérations mesurées
 
-            % Gestion des biais estimés
-            biais_estim = mu(7:9);
-
             % Calcul de l'accélération corrigée
-            a_real = a_mes - biais_estim + [0; 0; -g_moon]; % Correction des biais et ajout de la gravité
+            e = a_mes + [0; 0; -g_moon]; % Correction des biais et ajout de la gravité
 
             % Ajout d'une modélisation du bruit (incertitude sur a_real)
-            bruit = [sigma_acc,sigma_acc,sigma_acc]; %normrnd(0, sigma_acc, [3, 1]); % Bruit gaussien ajouté à l'estimation
-            a_real = a_real + bruit; % Accélération corrigée avec bruit
+            %bruit = [sigma_acc,sigma_acc,sigma_acc]; %normrnd(0, sigma_acc, [3, 1]); % Bruit gaussien ajouté à l'estimation
+            %e = e + bruit; % Accélération corrigée avec bruit
             
-            Zest = A * Zest + B * a_real;
+            Zest = A * Zest + B *e;
             Yest = A * Yest * A'+ Q*dt;
+        
         end
    end
 end
@@ -225,9 +225,9 @@ legend('Biais X', 'Biais Y', 'Biais Z');
 
 % --- Tracé 3D ---
 figure;
-scatter3(K_all, U_all, V_all, 'b','filled'); % Points (k, U, V)
+scatter3(K_all, U_all, V_all,'filled'); % Points (k, U, V)
 hold on
-scatter3(K_est, U_est, V_est, 'r','filled'); % Points (k, U, V)
+scatter3(K_est, U_est, V_est,'filled'); % Points (k, U, V)
 hold off
 legend('observée','estimée');
 xlabel('Indice de l''image (k)');

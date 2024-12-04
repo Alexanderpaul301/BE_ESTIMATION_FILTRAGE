@@ -1,213 +1,132 @@
-clear all
-close all
-load carte.dat
-load mesure_accelero
+% Nettoyage
+clear all;
+close all;
+clc;
 
-% X = carte(1,:), Y = carte(2,:) Z = carte(3,:) numéro d'amer = numéro de
-% colonne
-stem3(carte(1,:),carte(2,:),carte(3,:))
-axis([0 6000 -1000 1000 -100 1000]);
-xlabel('X');
-ylabel('Y');
-zlabel('Z');
-%
-% figure
-temps = mesure_accelero(:,1);
-delta=0.01;
-aX = mesure_accelero(:,2);
-aY = mesure_accelero(:,3);
-aZ = mesure_accelero(:,4);
+% Chargement des données
+load carte.dat; % Carte des amers
+load mesure_accelero; % Données d'accélération
 
-% plot(mesure_accelero(:,1),mesure_accelero(:,2),'r',mesure_accelero(:,1),mesure_accelero(:,3),'b',mesure_accelero(:,1),mesure_accelero(:,4),'g')
-% xlabel('temps (s)');
-% ylabel('acceleration (m/s²)');
-% legend('axe X','axe Y','axe Z');
+% Coordonnées des amers dans la carte
+X = carte(1, :);
+Y = carte(2, :);
+Z = carte(3, :);
 
-k_plot_image = 0; % Pour visualiser une image donnée
+% --- Paramètres de l'engin ---
+f = 512; % Distance focale (pixels)
+g_moon = 1.622; % Gravité lunaire (m/s²)
+dt = 0.01; % Pas de temps (s)
 
-figure      
-hold on;
-for k = 0:1:100
+% --- Initialisation des incertitudes ---
+sigma_pos = 3; % Écart-type de la position (pixels)
+sigma_vel = 2; % Écart-type de la vitesse (m/s)
+sigma_biais = 0.2; % Écart-type des biais d'accélération (m/s²)
+sigma_acc = sqrt(2e-5); % Bruit des accéléromètres (m/s²)
 
-    [filename,err] = sprintf('image%3.3d',k);
-    % image(1,:) = numéro d'amer U = image(2,:), V = image(3,:)
-    image = load(filename);
-    if(k == k_plot_image)
-%         figure
-%         plot(image(2,:),image(3,:),'.');
-%         axis([-512.0 512.0 -512.0 512.0]);
-%         xlabel('U');
-%         ylabel('V');
+% Matrices de covariance
+Q_pos = zeros(3);
+Q_vel = eye(3) * (sigma_acc * dt)^2;
+Q_biais = zeros(3);
+Q = blkdiag(Q_pos, Q_vel, Q_biais); % Bruit du processus
+
+% Initialisation du filtre
+num_images = 100; % Nombre d'images à traiter
+positions = zeros(num_images + 1, 3); % Tableau pour les positions
+biais = zeros(num_images + 1, 3); % Tableau pour les biais
+velocities = zeros(num_images + 1, 3); % Tableau pour les vitesses
+
+% --- Initialisation de l'état ---
+mu_pos = [1000; 0; 1000]; % Position initiale (moyenne)
+Sigma_pos = eye(3) * sigma_pos^2; % Covariance de la position
+mu_vel = [100; 0; 0]; % Vitesse initiale
+Sigma_vel = eye(3) * sigma_vel^2; % Covariance de la vitesse
+mu_biais = [0; 0; 0]; % Biais initiaux
+Sigma_biais = eye(3) * sigma_biais^2; % Covariance des biais
+mu = [mu_pos; mu_vel; mu_biais]; % État initial
+Sigma = blkdiag(Sigma_pos, Sigma_vel, Sigma_biais); % Covariance totale
+
+% --- Boucle principale ---
+for k = 0:num_images
+    % Chargement de l'image
+    filename = sprintf('images/image%3.3d', k);
+    if isfile(filename)
+        image = load(filename);
+    else
+        warning('Image %s introuvable, passage à l\image suivante.', filename);
+        continue;
     end
-    n=size(image,2);
-    if(k == 0)
-        % initialisez la moyenne et la covariance de l'état en utilisant
-        % des couples d'amers et une idée sur la vitesse initiale et les
-        % biais des accéleromètres
-        tot=n*(n-1)/2;
-        %moyenne
-        mx=0;
-        my=0;
-        mz=0;
-        for i=1:n-1
-            ida=image(1,i);
-        	ua=image(2,i);
-            va=image(3,i);
-            xa=carte(1,ida);
-            ya=carte(2,ida);
-            za=carte(3,ida);
-            for j=i+1:n
-                idb=image(1,j);
-                ub=image(2,j);
-                vb=image(3,j);
-                xb=carte(1,idb);
-                yb=carte(2,idb);
-                zb=carte(3,idb);
-                
-                if (ua~=ub)
-                    z=(512*(xa-xb)-ub*zb+za*ua)/(ua-ub);
-                else % (va~=vb)
-                    z=(512*(ya-yb)-vb*zb+za*va)/(va-vb);
-                end
-                
-                x=xa-ua*(z-za)/512;
-                y=ya-va*(z-za)/512;
-                mx=mx+x;
-                my=my+y;
-                mz=mz+z;
-            end
-        end 
-        mx=mx/tot;
-        my=my/tot;
-        mz=mz/tot;
-        m=[mx my mz];
-        
-        %covariance
-        cx=0;
-        cy=0;
-        cz=0;
-        cxy=0;
-        cyz=0;
-        czx=0;
-        so=[];
-        for i=1:n-1
-            ida=image(1,i);
-        	ua=image(2,i);
-            va=image(3,i);
-            xa=carte(1,ida);
-            ya=carte(2,ida);
-            za=carte(3,ida);
-            for j=i+1:n
-                idb=image(1,j);
-                ub=image(2,j);
-                vb=image(3,j);
-                xb=carte(1,idb);
-                yb=carte(2,idb);
-                zb=carte(3,idb);
-                
-                if (ua~=ub)
-                    z=(512*(xa-xb)-ub*zb+za*ua)/(ua-ub);
-                else % (va~=vb)
-                    z=(512*(ya-yb)-vb*zb+za*va)/(va-vb);
-                end
-                
-                x=xa-ua*(z-za)/512;
-                y=ya-va*(z-za)/512;
-                
-                cx=cx+(x-mx)^2;
-                cy=cy+(y-my)^2;
-                cz=cz+(z-mz)^2;
-                cxy=cxy+(x-mx)*(y-my);
-                cyz=cyz+(z-mz)*(y-my);
-                czx=czx+(x-mx)*(z-mz);
-            end
-            
-        end 
-        
-        %covariance
-        cx=cx/tot;
-        cy=cy/tot;
-        cz=cz/tot;
-        cxy=cxy/tot;
-        cyz=cyz/tot;
-        czx=czx/tot;
-        c=[cx cxy czx; cxy cy cyz; czx cyz cz];
-        
-        %initialisation vitesse
-        Vmoy=[100 0 0];
-        Cv=[4 0 0;0 4 0;0 0 4];
-        
-        %initialisation biais
-        Bmoy=[0 0 0];
-        Cb=[0.04 0 0; 0 0.04 0 ; 0 0 0.04];
+    
+    % --- Mesures de l'image ---
+    amers_obs = image(1, :); % Numéros des amers visibles
+    coord_image = [image(2, :); image(3, :)]; % Coordonnées (U, V)
+    coord_3D = [X(amers_obs); Y(amers_obs); Z(amers_obs)]; % Coordonnées 3D des amers observés
+    
+    % Prédiction des coordonnées dans le plan image
+    U_pred = -f * (coord_3D(1, :) - mu(1)) ./ (coord_3D(3, :) - mu(3));
+    V_pred = -f * (coord_3D(2, :) - mu(2)) ./ (coord_3D(3, :) - mu(3));
+    z_pred = [U_pred; V_pred]; % Prédiction des mesures
 
-        
-        X=[mx my mz Vmoy Bmoy]';
-        U=[0;0;0;-2e-5;-2e-5;-2e-5;0;0;0]/delta;
-        P=[c zeros(3) zeros(3); zeros(3) Cv zeros(3); zeros(3) zeros(3) Cb];
-    else %correction
-        % utilisez l'image et la carte pour recaller la prédiction de l'état
-  
-        s=[];
-        ms=[];
-        C=[];
-        sigma=[];
-        V=eye(2*n);
+    % Observation réelle
+    z_obs = coord_image; 
 
-        for i=1:n
-            Ui=image(2,i);
-            Vi=image(3,i);
-            Xi=carte(1,image(1,i));
-            Yi=carte(2,image(1,i));
-            Zi=carte(3,image(1,i));
+    % Calcul de la Jacobienne H
+    H = compute_jacobian(mu, coord_3D, f);
 
-            s= [s; Ui ; Vi];
-            ms=[ms; 512*(Xi)/(X(3)-Zi); 512*(Yi)/(X(3)-Zi)];
-            C=[C; -512*Xi/(X(3)-Zi) 0 -512*(Xi-X(1))/((X(3)-Zi)^2) 0 0 0 0 0 0; 0 -512*Yi/(X(3)-Zi) -512*(Yi-X(2))/((X(3)-Zi)^2) 0 0 0 0 0 0];
+    % Gain de Kalman
+    R = eye(size(K)) * sigma_pos^2; % Bruit de mesure
+    K = Sigma * H' / (H * Sigma * H' + R);
+
+    % Mise à jour de l'état
+    innovation = z_obs(:) - z_pred(:); % Différence entre mesures réelles et prédites
+    mu = mu + K * innovation; % Mise à jour de l'état
+    Sigma = (eye(size(Sigma)) - K * H) * Sigma; % Mise à jour de la covariance
+
+    % --- Enregistrement ---
+    positions(k + 1, :) = mu(1:3)';
+    velocities(k + 1, :) = mu(4:6)';
+    biais(k + 1, :) = mu(7:9)';
+
+    % --- Intégration dynamique ---
+    if k < num_images
+        for step = 1:100
+            a_mes = mesure_accelero(100 * k + step, 2:4)';
+            a_real = a_mes - mu(7:9) + [0; 0; -g_moon]; % Correction des biais
+            mu(1:3) = mu(1:3) + mu(4:6) * dt + 0.5 * a_real * dt^2;
+            mu(4:6) = mu(4:6) + a_real * dt;
         end
-        sigma=ms+C*X;
-        K=P*C'*inv(C*P*C'+V);
-        X=X+K*(s-sigma);
-        P=(eye(9)-K*C)*P;
     end
-    if(k ~= 100)   %prediction
-%         figure      
-%         hold on;
-        for l=0:1:99
-            e=mesure_accelero(100*k+l+1,2:4)' - [0; 0; 1.622];
-            Ad=delta*[zeros(3) eye(3) zeros(3);zeros(3) zeros(3) -eye(3); zeros(3) zeros(3) zeros(3)]+eye(9);
-            Bd=delta*[zeros(3); eye(3) ; zeros(3)];
-            
-            X=Ad*X+Bd*e;
-        
-            P=Ad*P*Ad'+U;
+end
 
-            %evolution des moyennes
-            plot(temps(100*k+l+1),X(1),'r+',temps(100*k+l+1),X(2),'b+',temps(100*k+l+1),X(3),'g+')
+% --- Affichage des résultats ---
+% Trajectoire
+figure;
+plot3(positions(:, 1), positions(:, 2), positions(:, 3), 'r', 'LineWidth', 1.5);
+grid on;
+xlabel('X (m)');
+ylabel('Y (m)');
+zlabel('Z (m)');
+title('Trajectoire estimée');
 
-            %evolution de la matrice de covariance position
-%             plot(temps(100*k+l+1),P(1,1),'r+',temps(100*k+l+1),P(2,2),'b+',temps(100*k+l+1),P(3,3),'g+')
-            
-            %evolution de la matrice de covariance vitesse
-%             plot(temps(100*k+l+1),P(4,4),'r+',temps(100*k+l+1),P(5,5),'b+',temps(100*k+l+1),P(6,6),'g+')
-            
-            %evolution de la matrice de covariance biais
-%             plot(temps(100*k+l+1),P(7,7),'r+',temps(100*k+l+1),P(8,8),'b+',temps(100*k+l+1),P(9,9),'g+')
-            
-        end
-        
-    xlabel("temps en s")
-    title("Evolution de la position")
-    legend('x','y','z')
+% Évolution des biais
+figure;
+plot(0:num_images, biais);
+xlabel('Temps (s)');
+ylabel('Biais (m/s²)');
+legend('Biais X', 'Biais Y', 'Biais Z');
+title('Évolution des biais des accéléromètres');
+grid on;
 
-%      title("Evolution de la matrice de covariance des positions")
-%      legend('covx','covy','covz')
-
-%       title("Evolution de la matrice de covariance de la vitesse")
-%       legend('covvx','covvy','covvz')
-
-%     title("Evolution de la matrice de covariance des biais")
-%     legend('covbx','covby','covbz')
-    end    
-
+% --- Fonction pour calculer la Jacobienne ---
+function H = compute_jacobian(mu, coord_3D, f)
+    n = size(coord_3D, 2);
+    H = zeros(2 * n, length(mu));
+    for i = 1:n
+        dX = coord_3D(1, i) - mu(1);
+        dY = coord_3D(2, i) - mu(2);
+        dZ = coord_3D(3, i) - mu(3);
+        H(2 * i - 1:2 * i, :) = [
+            -f / dZ, 0, f * dX / dZ^2, 0, 0, 0, 0, 0, 0;
+            0, -f / dZ, f * dY / dZ^2, 0, 0, 0, 0, 0, 0
+        ];
+    end
 end
