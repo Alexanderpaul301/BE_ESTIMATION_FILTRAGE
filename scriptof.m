@@ -58,7 +58,7 @@ Q_biais = zeros(3);
 Q = blkdiag(Q_pos, Q_vel, Q_biais);
 
 % --- Boucle principale sur les images ---
-num_images = 100; % Nombre total d'images
+num_images = 5; % Nombre total d'images
 
 positions = zeros(num_images + 1, 3); % Tableau pour les positions (X, Y, Z)
 U_all = []; % Stockage de tous les points U
@@ -164,13 +164,15 @@ for k = 0:num_images
             a_mes = mesure_accelero(100 * k + l + 1, 2:4)'; % Accélérations mesurées
 
             % Calcul de l'accélération corrigée
-            e = a_mes + [0; 0; -g_moon]; % Correction des biais et ajout de la gravité
+            e = [a_mes(1), 0,0;
+                 0,a_mes(2),0;
+                 0,0,a_mes(3)-g_moon]; % Correction des biais et ajout de la gravité
 
             % Ajout d'une modélisation du bruit (incertitude sur a_real)
-            %bruit = [sigma_acc,sigma_acc,sigma_acc]; %normrnd(0, sigma_acc, [3, 1]); % Bruit gaussien ajouté à l'estimation
+            %bruit = [sigma_acc, 0,0; 0,sigma_acc,0; 0,0,sigma_acc];  % Bruit gaussien ajouté à l'estimation
             %e = e + bruit; % Accélération corrigée avec bruit
             
-            Zest = A * Zest + B *e;
+            Zest = A * Zest + B *[zeros(3);e;zeros(3)];
             Yest = A * Yest * A'+ Q*dt;
         
         end
