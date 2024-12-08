@@ -108,8 +108,8 @@ for k = 0:num_images
  
     else
         %%
-        U_pred = -f * (coord_3D(1, :) - mu(1)) ./ (coord_3D(3, :) - mu(3));
-        V_pred = -f * (coord_3D(2, :) - mu(2)) ./ (coord_3D(3, :) - mu(3));
+        U_pred = -f * (coord_3D(1, :) - Zest(1)) ./ (coord_3D(3, :) - Zest(3));
+        V_pred = -f * (coord_3D(2, :) - Zest(2)) ./ (coord_3D(3, :) - Zest(3));
         z_pred = [U_pred; V_pred];
         z_obs = coord_image;
 
@@ -173,7 +173,7 @@ for k = 0:num_images
             %e = e + bruit; % Accélération corrigée avec bruit
             
             Zest = A * Zest + B *[zeros(3);e;zeros(3)];
-            Yest = A * Yest * A'+ Q*dt;
+            Yest = A * Yest * A'+ Q;
         
         end
    end

@@ -108,8 +108,8 @@ for k = 0:num_images
  
     else
         %%
-        U_pred = -f * (coord_3D(1, :) - Zest(1)) ./ (coord_3D(3, :) - Zest(3));
-        V_pred = -f * (coord_3D(2, :) - Zest(2)) ./ (coord_3D(3, :) - Zest(3));
+        U_pred = -f * (coord_3D(1, :) - mu(1)) ./ (coord_3D(3, :) - mu(3));
+        V_pred = -f * (coord_3D(2, :) - mu(2)) ./ (coord_3D(3, :) - mu(3));
         z_pred = [U_pred; V_pred];
         z_obs = coord_image;
 
@@ -118,6 +118,7 @@ for k = 0:num_images
 
         % Kalman gain (avec régularisation pour stabilisation)
         R = eye(size(H * Yest * H',1)); % Bruit de mesure régularisé
+
         K = Yest * H' * inv(H * Yest * H' + R); % Gain de Kalman
 
         % Matrice d'observation S
@@ -169,11 +170,11 @@ for k = 0:num_images
                  0,0,a_mes(3)-g_moon]; % Correction des biais et ajout de la gravité
 
             % Ajout d'une modélisation du bruit (incertitude sur a_real)
-            %bruit = [a_mes(1), 0,0; 0,a_mes(2),0; 0,0,a_mes(3)-g_moon]; %normrnd(0, sigma_acc, [3, 1]); % Bruit gaussien ajouté à l'estimation
+            %bruit = [sigma_acc, 0,0; 0,sigma_acc,0; 0,0,sigma_acc];  % Bruit gaussien ajouté à l'estimation
             %e = e + bruit; % Accélération corrigée avec bruit
             
             Zest = A * Zest + B *[zeros(3);e;zeros(3)];
-            Yest = A * Yest * A'+ Q/dt;
+            Yest = A * Yest * A'+ Q;
         
         end
    end
