@@ -29,3 +29,5 @@ function H = compute_jacobian(mu, coord_3D, f)
         H(2 * i, 3) = -f * dY / dZ^2;          % dV/dz
     end
 end
+
+
