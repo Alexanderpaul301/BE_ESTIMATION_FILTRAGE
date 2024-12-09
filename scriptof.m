@@ -191,6 +191,7 @@ plot(time1, positions0(:, 1), '-r', 'DisplayName', 'Position X');
 xlabel('Itération');
 ylabel('X (m)');
 title('Trajectoire - Position X sur 1s');
+grid on;
 legend;
 
 subplot(3, 1, 2);
@@ -198,6 +199,7 @@ plot(time1, positions0(:, 2), '-g', 'DisplayName', 'Position Y');
 xlabel('Itération');
 ylabel('Y (m)');
 title('Trajectoire - Position Y sur 1s');
+grid on;
 legend;
 
 subplot(3, 1, 3);
@@ -205,6 +207,7 @@ plot(time1, positions0(:, 3), '-b', 'DisplayName', 'Position Z');
 xlabel('Itération');
 ylabel('Z (m)');
 title('Trajectoire - Position Z sur 1s');
+grid on;
 legend;
 
 % Tracé des positions estimées en 3D à l'instant 1s
@@ -224,6 +227,7 @@ plot(1:size(positions(:, 1), 1), positions(:, 1), '-r', 'DisplayName', 'Position
 xlabel('Itération');
 ylabel('X (m)');
 title('Trajectoire - Position X');
+grid on;
 legend;
 
 subplot(3, 1, 2);
@@ -231,6 +235,7 @@ plot(1:size(positions(:, 2), 1), positions(:, 2), '-g', 'DisplayName', 'Position
 xlabel('Itération');
 ylabel('Y (m)');
 title('Trajectoire - Position Y');
+grid on;
 legend;
 
 subplot(3, 1, 3);
@@ -238,6 +243,7 @@ plot(1:size(positions(:, 3), 1), positions(:, 3), '-b', 'DisplayName', 'Position
 xlabel('Itération');
 ylabel('Z (m)');
 title('Trajectoire - Position Z');
+grid on;
 legend;
 
 % Tracé des positions estimées en 3D
