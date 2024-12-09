@@ -28,6 +28,11 @@ function [mu, Sigma] = initialize_filter(image_data, carte, f,Sigma_vel,Sigma_bi
             XE = XA - (ZE - ZA) * UA / f;
             YE = YA - (ZE - ZA) * VA / f;
 
+            %XE = (YA - YB - (VA / UA) * XA + (VB / UB) * XB) / ((VB / UB) - (VA / UA));
+            %YE = (XA - XB - (UA / VA) * YA + (UB / VB) * YB) / ((UB / VB) - (UA / VA));
+            %ZE = (512 / UA) * (XA - (YA - YB - (VA / UA) * XA + (VB / UB) * XB) / ((VB / UB) - (VA / UA))) + ZA;
+
+
             Xpos(n) = XE;
             Ypos(n) = YE;
             Zpos(n) = ZE;

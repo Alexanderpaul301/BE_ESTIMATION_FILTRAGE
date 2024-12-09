@@ -21,11 +21,11 @@ function H = compute_jacobian(mu, coord_3D, f)
         dY = Y_A - Y_e;
 
         % Dérivées pour U
-        H(2 * i - 1, 1) = -f / dZ;            % dU/dx
-        H(2 * i - 1, 3) = f * dX / dZ^2;      % dU/dz
+        H(2 * i - 1, 1) = f / dZ;            % dU/dx
+        H(2 * i - 1, 3) = -f * dX / dZ^2;      % dU/dz
 
         % Dérivées pour V
-        H(2 * i, 2) = -f / dZ;                % dV/dy
-        H(2 * i, 3) = f * dY / dZ^2;          % dV/dz
+        H(2 * i, 2) = f / dZ;                % dV/dy
+        H(2 * i, 3) = -f * dY / dZ^2;          % dV/dz
     end
 end

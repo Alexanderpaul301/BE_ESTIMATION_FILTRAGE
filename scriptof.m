@@ -53,7 +53,7 @@ Sigma_biais = eye(3) * sigma_biais^2; % Incertitude sur les biais
 
 % Matrice de bruit de processus Q
 Q_pos = zeros(3);
-Q_vel = eye(3) * (sigma_acc*dt)^2;
+Q_vel = eye(3) * (sigma_acc)^2;
 Q_biais = zeros(3);
 Q = blkdiag(Q_pos, Q_vel, Q_biais);
 
@@ -99,12 +99,12 @@ for k = 0:num_images
 
 %% Recalage statique pour mise à jour de la position
     if k == 0
-        [mu, Sigma] = initialize_filter(image, carte, f,Sigma_vel,Sigma_biais,mu_vel,mu_biais);
+        [mu, Sigma0] = initialize_filter(image, carte, f,Sigma_vel,Sigma_biais,mu_vel,mu_biais);
 
         % Récupération des points U et V pour cette image
         U_pred =[]; % Coordonnées U de l'image courante
         V_pred =[]; % Coordonnées V de l'image courante
-
+        Sigma=Sigma0;
  
     else
         %%
@@ -115,11 +115,11 @@ for k = 0:num_images
 
       
         % Matrice de Jacobienne H
-        H = compute_jacobian(Zest, coord_3D, f); % Taille m x n
+        H = compute_jacobian(mu, coord_3D, f); % Taille m x n
 
         % Kalman gain (avec régularisation pour stabilisation)
-        R = eye(size(H * Yest * H',1)); % Bruit de mesure régularisé
-        K = Yest * H' * inv(H * Yest * H' + R); % Gain de Kalman
+        R = eye(size(H * Yest * H',1))*sigma_acc^2; % Bruit de mesure régularisé
+        K = Yest * H' * pinv(H * Yest * H' + R); % Gain de Kalman
 
         % Matrice d'observation S
         S = zeros(size(K,2), 1);
@@ -163,7 +163,7 @@ for k = 0:num_images
             a_mes = mesure_accelero(100 * k + l + 1, 2:4)'; % Accélérations mesurées
 
             % Calcul de l'accélération corrigée
-            e = [0;0;-g_moon]; % Correction des biais et ajout de la gravité
+            e = a_mes - mu(7:9) + [0;0;-g_moon]; % Correction des biais et ajout de la gravité
 
             % Ajout d'une modélisation du bruit (incertitude sur a_real)
             %bruit = [sigma_acc;sigma_acc;sigma_acc];  % Bruit gaussien ajouté à l'estimation
@@ -171,7 +171,6 @@ for k = 0:num_images
             
             Zest = A * mu + B *e;
             Yest = A * Sigma * A'+ Q*dt;
-        
         end
    end
 end
