@@ -19,18 +19,9 @@ function [mu, Sigma] = initialize_filter(image_data, carte, f,Sigma_vel,Sigma_bi
             UB = image_data(2, i);
             VB = image_data(3, i);
 
-            if (UA ~= UB)
-                ZE = (f * (XA - XB) + UA * ZA - UB * ZB) / (UA - UB);
-            else
-                ZE = (f * (YA - YB) + VA * ZA - VB * ZB) / (VA - VB);
-            end
-
-            XE = XA - (ZE - ZA) * UA / f;
-            YE = YA - (ZE - ZA) * VA / f;
-
-            %XE = (YA - YB - (VA / UA) * XA + (VB / UB) * XB) / ((VB / UB) - (VA / UA));
-            %YE = (XA - XB - (UA / VA) * YA + (UB / VB) * YB) / ((UB / VB) - (UA / VA));
-            %ZE = (512 / UA) * (XA - (YA - YB - (VA / UA) * XA + (VB / UB) * XB) / ((VB / UB) - (VA / UA))) + ZA;
+            XE = (YA - YB - (VA / UA) * XA + (VB / UB) * XB) / ((VB / UB) - (VA / UA));
+            YE = (XA - XB - (UA / VA) * YA + (UB / VB) * YB) / ((UB / VB) - (UA / VA));
+            ZE = (512 / UA) * (XA - (YA - YB - (VA / UA) * XA + (VB / UB) * XB) / ((VB / UB) - (VA / UA))) + ZA;
 
 
             Xpos(n) = XE;
