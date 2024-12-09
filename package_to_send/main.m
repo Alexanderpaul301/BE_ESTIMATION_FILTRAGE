@@ -139,7 +139,13 @@ for k = 0:num_images
         positions_avant(k + 1, :) = position_avant_recalage;
 
         % Mise à jour (recalage)
-        S = z_obs(:) - z_pred_avant(:);
+        S = zeros(size(K, 2), 1);
+
+        for i = 1:size(K, 2) / 2
+            S(2 * i - 1) = z_obs(1, i) - z_pred(1, i); % U
+            S(2 * i) = z_obs(2, i) - z_pred(2, i); % V
+        end
+
         mu = mu + K * S;
         Sigma = (eye(size(Sigma)) - K * H) * Sigma;
 
