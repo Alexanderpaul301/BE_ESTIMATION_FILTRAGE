@@ -170,7 +170,7 @@ for k = 0:num_images
             %e = e + bruit; % Accélération corrigée avec bruit
             
             Zest = A * mu + B *e;
-            Yest = A * Sigma * A'+ Q;
+            Yest = A * Sigma * A'+ Q*dt;
         
         end
    end
