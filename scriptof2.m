@@ -48,7 +48,7 @@ mu_biais = [0; 0; 0]; % Biais initial des accéléromètres
 Sigma_vel = eye(3) * sigma_vitesse ^ 2; % Incertitude initiale sur la vitesse
 Sigma_biais = eye(3) * sigma_biais ^ 2; % Incertitude sur les biais
 Q_pos = zeros(3);
-Q_vel = eye(3) * (sigma_acc * dt) ^ 2;
+Q_vel = eye(3) * (sigma_acc) ^ 2;
 Q_biais = zeros(3);
 Q = blkdiag(Q_pos, Q_vel, Q_biais);
 
@@ -99,7 +99,12 @@ for k = 0:num_images
         H = compute_jacobian(mu, coord_3D, f);
         R = eye(size(H, 1));
         K = Sigma * H' / (H * Sigma * H' + R);
-        S = z_obs(:) - z_pred(:);
+        %S = z_obs(:) - z_pred(:);
+        S = zeros(size(K,2), 1);
+        for i = 1 :size(K,2)/2
+            S(2 * i - 1) = z_obs(1, i) - z_pred(1, i); % U
+            S(2 * i) = z_obs(2, i) - z_pred(2, i); % V 
+        end
         mu = mu + K * S;
         Sigma = (eye(size(Sigma)) - K * H) * Sigma;
     end
@@ -114,6 +119,7 @@ for k = 0:num_images
     U_est = [U_est, U_pred];
     V_est = [V_est, V_pred];
     K_est = [K_est, K_pred];
+
     positions(k + 1, :) = mu(1:3)';
     biais(k + 1, :) = mu(7:9)';
 
@@ -121,9 +127,11 @@ for k = 0:num_images
 
         for l = 0:99
             a_mes = mesure_accelero(100 * k + l + 1, 2:4)';
-            e = [0; 0; -g_moon];
+            e = a_mes - mu(7:9) + [0; 0; -g_moon];
+            bruit = [sigma_acc;sigma_acc;sigma_acc];  % Bruit gaussien ajouté à l'estimation
+            e = e + bruit; % Accélération corrigée avec bruit
             mu = A * mu + B * e;
-            Sigma = A * Sigma * A' + Q;
+            Sigma = A * Sigma * A' + Q*dt;
         end
 
     end
@@ -164,3 +172,16 @@ xlabel('Temps (s)');
 ylabel('Biais (m/s²)');
 title('Évolution des biais');
 legend('Biais X', 'Biais Y', 'Biais Z');
+
+% --- Tracé 3D ---
+figure;
+scatter3(K_all, U_all, V_all,'filled'); % Points (k, U, V)
+hold on
+scatter3(K_est, U_est, V_est,'filled'); % Points (k, U, V)
+hold off
+legend('observée','estimée');
+xlabel('Indice de l''image (k)');
+ylabel('Coordonnées U');
+zlabel('Coordonnées V');
+title('Évolution des points (U, V) en fonction des images');
+grid on;

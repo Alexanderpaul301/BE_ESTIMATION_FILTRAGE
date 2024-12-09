@@ -53,7 +53,7 @@ Sigma_biais = eye(3) * sigma_biais^2; % Incertitude sur les biais
 
 % Matrice de bruit de processus Q
 Q_pos = zeros(3);
-Q_vel = eye(3) * (sigma_acc)^2;
+Q_vel = eye(3) * sigma_acc^2;
 Q_biais = zeros(3);
 Q = blkdiag(Q_pos, Q_vel, Q_biais);
 
@@ -61,6 +61,7 @@ Q = blkdiag(Q_pos, Q_vel, Q_biais);
 num_images = 100; % Nombre total d'images
 
 positions = zeros(num_images + 1, 3); % Tableau pour les positions (X, Y, Z)
+positions0 = zeros(100, 3);
 U_all = []; % Stockage de tous les points U
 V_all = []; % Stockage de tous les points V
 K_all = []; % Stockage des indices d'image k
@@ -99,17 +100,17 @@ for k = 0:num_images
 
 %% Recalage statique pour mise à jour de la position
     if k == 0
-        [mu, Sigma0] = initialize_filter(image, carte, f,Sigma_vel,Sigma_biais,mu_vel,mu_biais);
+        [mu, Sigma] = initialize_filter(image, carte, f,Sigma_vel,Sigma_biais,mu_vel,mu_biais);
 
         % Récupération des points U et V pour cette image
         U_pred =[]; % Coordonnées U de l'image courante
         V_pred =[]; % Coordonnées V de l'image courante
-        Sigma=Sigma0;
+
  
     else
         %%
-        U_pred = -f * (coord_3D(1, :) - Zest(1)) ./ (coord_3D(3, :) - Zest(3));
-        V_pred = -f * (coord_3D(2, :) - Zest(2)) ./ (coord_3D(3, :) - Zest(3));
+        U_pred = -f * (coord_3D(1, :) - mu(1)) ./ (coord_3D(3, :) - mu(3));
+        V_pred = -f * (coord_3D(2, :) - mu(2)) ./ (coord_3D(3, :) - mu(3));
         z_pred = [U_pred; V_pred];
         z_obs = coord_image;
 
@@ -118,8 +119,8 @@ for k = 0:num_images
         H = compute_jacobian(mu, coord_3D, f); % Taille m x n
 
         % Kalman gain (avec régularisation pour stabilisation)
-        R = eye(size(H * Yest * H',1))*sigma_acc^2; % Bruit de mesure régularisé
-        K = Yest * H' * pinv(H * Yest * H' + R); % Gain de Kalman
+        R = eye(size(H,1)); % Bruit de mesure régularisé
+        K = Sigma * H' /(H * Sigma * H' + R); % Gain de Kalman
 
         % Matrice d'observation S
         S = zeros(size(K,2), 1);
@@ -129,8 +130,9 @@ for k = 0:num_images
         end
 
         % Mise à jour de l'état et de la covariance
-        mu = Zest + K *S; % Mise à jour de l'estimation a posteriori (y=mu)
-        Sigma = (eye(size(Sigma)) - K * H) * Yest; % Mise à jour de la covariance 
+        mu = mu + K *S; % Mise à jour de l'estimation a posteriori (y=mu)
+        Sigma = (eye(size(Sigma)) - K * H) * Sigma; % Mise à jour de la covariance
+        
 
        
     end
@@ -166,14 +168,52 @@ for k = 0:num_images
             e = a_mes - mu(7:9) + [0;0;-g_moon]; % Correction des biais et ajout de la gravité
 
             % Ajout d'une modélisation du bruit (incertitude sur a_real)
-            %bruit = [sigma_acc;sigma_acc;sigma_acc];  % Bruit gaussien ajouté à l'estimation
-            %e = e + bruit; % Accélération corrigée avec bruit
+            bruit = [sigma_acc;sigma_acc;sigma_acc];  % Bruit gaussien ajouté à l'estimation
+            e = e + bruit; % Accélération corrigée avec bruit
             
-            Zest = A * mu + B *e;
-            Yest = A * Sigma * A'+ Q*dt;
+            mu = A * mu + B *e;
+            Sigma = A * Sigma * A'+ Q*dt;
+            
+            if k==0
+                positions0(l + 1, :)=mu(1:3)';
+            end
         end
    end
 end
+
+% --- Affichage des trajectoires sur 1s ---
+figure;
+time1=linspace(0,1,size(positions0(:, 2), 1));
+subplot(3, 1, 1);
+plot(time1, positions0(:, 1), '-r', 'DisplayName', 'Position X');
+xlabel('Itération');
+ylabel('X (m)');
+title('Trajectoire - Position X');
+legend;
+
+subplot(3, 1, 2);
+plot(time1, positions0(:, 2), '-g', 'DisplayName', 'Position Y');
+xlabel('Itération');
+ylabel('Y (m)');
+title('Trajectoire - Position Y');
+legend;
+
+subplot(3, 1, 3);
+plot(time1, positions0(:, 3), '-b', 'DisplayName', 'Position Z');
+xlabel('Itération');
+ylabel('Z (m)');
+title('Trajectoire - Position Z');
+legend;
+
+% Tracé des positions estimées en 3D à l'instant 1s
+figure;
+plot3(positions0(:, 1), positions0(:, 2), positions0(:, 3), 'r-o', 'LineWidth', 2);
+grid on;
+xlabel('X (m)');
+ylabel('Y (m)');
+zlabel('Z (m)');
+title('Trajectoire de l''engin');
+
 
 % --- Affichage des trajectoires ---
 figure;
@@ -207,14 +247,15 @@ ylabel('Y (m)');
 zlabel('Z (m)');
 title('Trajectoire de l''engin');
 
+
 % Tracé de l'évolution des biais
-time = linspace(0, num_images, num_images + 1); % Temps correspondant aux étapes
+time2 = linspace(0, num_images, num_images + 1); % Temps correspondant aux étapes
 
 figure;
-plot(time, biais(:, 1), 'r-', 'LineWidth', 1.5);
+plot(time2, biais(:, 1), 'r-', 'LineWidth', 1.5);
 hold on;
-plot(time, biais(:, 2), 'g-', 'LineWidth', 1.5);
-plot(time, biais(:, 3), 'b-', 'LineWidth', 1.5);
+plot(time2, biais(:, 2), 'g-', 'LineWidth', 1.5);
+plot(time2, biais(:, 3), 'b-', 'LineWidth', 1.5);
 grid on;
 xlabel('Temps (s)');
 ylabel('Biais (m/s²)');
