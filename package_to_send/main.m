@@ -287,9 +287,9 @@ legend();
 
 % Tracé des points observés et estimés dans l'espace 3D
 figure;
-scatter3(K_all, U_all, V_all, 50, 'r', 'filled', 'DisplayName', 'Observée');
+scatter3(K_all, U_all, V_all, 50, 'filled', 'DisplayName', 'Observée');
 hold on;
-scatter3(K_est, U_est, V_est, 50, 'b', 'filled', 'DisplayName', 'Estimée');
+scatter3(K_est, U_est, V_est, 50, 'filled', 'DisplayName', 'Estimée');
 hold off;
 grid on;
 xlabel('Indice des images (k)');
