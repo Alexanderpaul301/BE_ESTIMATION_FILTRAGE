@@ -100,11 +100,13 @@ for k = 0:num_images
 
 %% Recalage statique pour mise à jour de la position
     if k == 0
-        [mu, Sigma] = initialize_filter(image, carte, f,Sigma_vel,Sigma_biais,mu_vel,mu_biais);
+        [mu0, Sigma0] = initialize_filter(image, carte, f,Sigma_vel,Sigma_biais,mu_vel,mu_biais);
 
         % Récupération des points U et V pour cette image
         U_pred =[]; % Coordonnées U de l'image courante
         V_pred =[]; % Coordonnées V de l'image courante
+        Sigma=Sigma0;
+        mu=mu0;
 
  
     else
@@ -188,21 +190,21 @@ subplot(3, 1, 1);
 plot(time1, positions0(:, 1), '-r', 'DisplayName', 'Position X');
 xlabel('Itération');
 ylabel('X (m)');
-title('Trajectoire - Position X');
+title('Trajectoire - Position X sur 1s');
 legend;
 
 subplot(3, 1, 2);
 plot(time1, positions0(:, 2), '-g', 'DisplayName', 'Position Y');
 xlabel('Itération');
 ylabel('Y (m)');
-title('Trajectoire - Position Y');
+title('Trajectoire - Position Y sur 1s');
 legend;
 
 subplot(3, 1, 3);
 plot(time1, positions0(:, 3), '-b', 'DisplayName', 'Position Z');
 xlabel('Itération');
 ylabel('Z (m)');
-title('Trajectoire - Position Z');
+title('Trajectoire - Position Z sur 1s');
 legend;
 
 % Tracé des positions estimées en 3D à l'instant 1s
@@ -212,7 +214,7 @@ grid on;
 xlabel('X (m)');
 ylabel('Y (m)');
 zlabel('Z (m)');
-title('Trajectoire de l''engin');
+title('Trajectoire de l''engin sur 1s');
 
 
 % --- Affichage des trajectoires ---
