@@ -137,6 +137,41 @@ for k = 0:num_images
         mu = mu + K * S;
         Sigma = (eye(size(Sigma)) - K * H) * Sigma;
 
+        % Vérifiez si l'image correspond
+        if k == k_plot_image
+            % Calcul des projections avant recalage
+            position_avant_recalage = mu(1:3)';
+            U_pred_avant = -f * (coord_3D(1, :) - position_avant_recalage(1)) ./ (coord_3D(3, :) - position_avant_recalage(3));
+            V_pred_avant = -f * (coord_3D(2, :) - position_avant_recalage(2)) ./ (coord_3D(3, :) - position_avant_recalage(3));
+            z_pred_avant = [U_pred_avant; V_pred_avant];
+
+            % Recalage
+            H = compute_jacobian(mu, coord_3D, f);
+            K = Sigma * H' / (H * Sigma * H' + R);
+            S = z_obs(:) - z_pred_avant(:);
+            mu = mu + K * S;
+            Sigma = (eye(size(Sigma)) - K * H) * Sigma;
+
+            % Calcul des projections après recalage
+            position_apres_recalage = mu(1:3)';
+            U_pred_apres = -f * (coord_3D(1, :) - position_apres_recalage(1)) ./ (coord_3D(3, :) - position_apres_recalage(3));
+            V_pred_apres = -f * (coord_3D(2, :) - position_apres_recalage(2)) ./ (coord_3D(3, :) - position_apres_recalage(3));
+            z_pred_apres = [U_pred_apres; V_pred_apres];
+
+            % Calcul des erreurs avant et après recalage
+            erreur_avant = sqrt(mean(sum((z_obs - z_pred_avant) .^ 2, 1)));
+            erreur_apres = sqrt(mean(sum((z_obs - z_pred_apres) .^ 2, 1)));
+
+            % Affichage démo demandée
+            disp("Résultats pour l'image de démonstration :");
+            disp(['Image : ', num2str(k_plot_image)]);
+            disp(['Erreur moyenne avant recalage : ', num2str(erreur_avant, '%.2f'), ' pixels']);
+            disp(['Erreur moyenne après recalage : ', num2str(erreur_apres, '%.2f'), ' pixels']);
+            disp(['Position avant recalage : [', num2str(position_avant_recalage, '%.2f '), ']']);
+            disp(['Position après recalage : [', num2str(position_apres_recalage, '%.2f '), ']']);
+            disp('----------------------------------------');
+        end
+
     end
 
     %% Enregistrement des paramètres
