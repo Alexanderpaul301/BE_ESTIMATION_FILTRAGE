@@ -2,7 +2,8 @@ function H = compute_jacobian(mu, coord_3D, f)
     X_e = mu(1); % Position estimée X de l'engin
     Y_e = mu(2); % Position estimée Y de l'engin
     Z_e = mu(3); % Position estimée Z de l'engin
-    n = size(coord_3D, 2); % Nombre d'amers observés
+     n = size(coord_3D, 2); % Nombre d'amers observés
+    
 
     % Initialisation de la Jacobienne
     H = zeros(2 * n, length(mu)); % Dimensions : 2n x 9 (état complet)
