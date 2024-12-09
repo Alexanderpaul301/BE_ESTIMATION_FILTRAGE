@@ -72,6 +72,11 @@ V_est = [];
 K_est = [];
 biais = zeros(num_images + 1, 3);
 
+erreurs_avant = zeros(num_images + 1, 1);
+erreurs_apres = zeros(num_images + 1, 1);
+positions_avant = zeros(num_images + 1, 3);
+positions_apres = zeros(num_images + 1, 3);
+
 k_plot_image = 50;
 
 % Boucle principale
@@ -111,7 +116,6 @@ for k = 0:num_images
         mu = mu0;
 
     else
-
         % Prédiction
         U_pred = -f * (coord_3D(1, :) - mu(1)) ./ (coord_3D(3, :) - mu(3));
         V_pred = -f * (coord_3D(2, :) - mu(2)) ./ (coord_3D(3, :) - mu(3));
@@ -119,58 +123,38 @@ for k = 0:num_images
         z_obs = coord_image;
 
         % Matrice de Jacobienne H
-        H = compute_jacobian(mu, coord_3D, f); % Taille m x n
+        H = compute_jacobian(mu, coord_3D, f);
 
         % Gain de Kalman
         R = eye(size(H, 1));
         K = Sigma * H' / (H * Sigma * H' + R);
 
-        % Matrice d'observation
-        S = zeros(size(K, 2), 1);
+        % Calcul des projections avant recalage
+        position_avant_recalage = mu(1:3)';
+        U_pred_avant = -f * (coord_3D(1, :) - position_avant_recalage(1)) ./ (coord_3D(3, :) - position_avant_recalage(3));
+        V_pred_avant = -f * (coord_3D(2, :) - position_avant_recalage(2)) ./ (coord_3D(3, :) - position_avant_recalage(3));
+        z_pred_avant = [U_pred_avant; V_pred_avant];
 
-        for i = 1:size(K, 2) / 2
-            S(2 * i - 1) = z_obs(1, i) - z_pred(1, i); % U
-            S(2 * i) = z_obs(2, i) - z_pred(2, i); % V
-        end
+        % Stockage des positions avant recalage
+        positions_avant(k + 1, :) = position_avant_recalage;
 
-        % Mise à jour de l'état et de la covariance
+        % Mise à jour (recalage)
+        S = z_obs(:) - z_pred_avant(:);
         mu = mu + K * S;
         Sigma = (eye(size(Sigma)) - K * H) * Sigma;
 
-        % Vérifiez si l'image correspond
-        if k == k_plot_image
-            % Calcul des projections avant recalage
-            position_avant_recalage = mu(1:3)';
-            U_pred_avant = -f * (coord_3D(1, :) - position_avant_recalage(1)) ./ (coord_3D(3, :) - position_avant_recalage(3));
-            V_pred_avant = -f * (coord_3D(2, :) - position_avant_recalage(2)) ./ (coord_3D(3, :) - position_avant_recalage(3));
-            z_pred_avant = [U_pred_avant; V_pred_avant];
+        % Calcul des projections après recalage
+        position_apres_recalage = mu(1:3)';
+        U_pred_apres = -f * (coord_3D(1, :) - position_apres_recalage(1)) ./ (coord_3D(3, :) - position_apres_recalage(3));
+        V_pred_apres = -f * (coord_3D(2, :) - position_apres_recalage(2)) ./ (coord_3D(3, :) - position_apres_recalage(3));
+        z_pred_apres = [U_pred_apres; V_pred_apres];
 
-            % Recalage
-            H = compute_jacobian(mu, coord_3D, f);
-            K = Sigma * H' / (H * Sigma * H' + R);
-            S = z_obs(:) - z_pred_avant(:);
-            mu = mu + K * S;
-            Sigma = (eye(size(Sigma)) - K * H) * Sigma;
+        % Stockage des positions après recalage
+        positions_apres(k + 1, :) = position_apres_recalage;
 
-            % Calcul des projections après recalage
-            position_apres_recalage = mu(1:3)';
-            U_pred_apres = -f * (coord_3D(1, :) - position_apres_recalage(1)) ./ (coord_3D(3, :) - position_apres_recalage(3));
-            V_pred_apres = -f * (coord_3D(2, :) - position_apres_recalage(2)) ./ (coord_3D(3, :) - position_apres_recalage(3));
-            z_pred_apres = [U_pred_apres; V_pred_apres];
-
-            % Calcul des erreurs avant et après recalage
-            erreur_avant = sqrt(mean(sum((z_obs - z_pred_avant) .^ 2, 1)));
-            erreur_apres = sqrt(mean(sum((z_obs - z_pred_apres) .^ 2, 1)));
-
-            % Affichage démo demandée
-            disp("Résultats pour l'image de démonstration :");
-            disp(['Image : ', num2str(k_plot_image)]);
-            disp(['Erreur moyenne avant recalage : ', num2str(erreur_avant, '%.2f'), ' pixels']);
-            disp(['Erreur moyenne après recalage : ', num2str(erreur_apres, '%.2f'), ' pixels']);
-            disp(['Position avant recalage : [', num2str(position_avant_recalage, '%.2f '), ']']);
-            disp(['Position après recalage : [', num2str(position_apres_recalage, '%.2f '), ']']);
-            disp('----------------------------------------');
-        end
+        % Calcul des erreurs avant et après recalage
+        erreurs_avant(k + 1) = sqrt(mean(sum((z_obs - z_pred_avant) .^ 2, 1)));
+        erreurs_apres(k + 1) = sqrt(mean(sum((z_obs - z_pred_apres) .^ 2, 1)));
 
     end
 
@@ -221,100 +205,143 @@ for k = 0:num_images
 
 end
 
-% Affichage des trajectoires sur 1s
+% Affichage des trajectoires sur 1 seconde
 figure;
-time1 = linspace(0, 1, size(positions0(:, 2), 1));
+time1 = linspace(0, 1, size(positions0, 1));
 subplot(3, 1, 1);
-plot(time1, positions0(:, 1), '-r', 'DisplayName', 'Position X');
-xlabel('Itération');
+plot(time1, positions0(:, 1), '-r', 'LineWidth', 1.5);
+xlabel('Temps (s)');
 ylabel('X (m)');
 title('Trajectoire - Position X sur 1s');
 grid on;
-legend;
 
 subplot(3, 1, 2);
-plot(time1, positions0(:, 2), '-g', 'DisplayName', 'Position Y');
-xlabel('Itération');
+plot(time1, positions0(:, 2), '-g', 'LineWidth', 1.5);
+xlabel('Temps (s)');
 ylabel('Y (m)');
 title('Trajectoire - Position Y sur 1s');
 grid on;
-legend;
 
 subplot(3, 1, 3);
-plot(time1, positions0(:, 3), '-b', 'DisplayName', 'Position Z');
-xlabel('Itération');
+plot(time1, positions0(:, 3), '-b', 'LineWidth', 1.5);
+xlabel('Temps (s)');
 ylabel('Z (m)');
 title('Trajectoire - Position Z sur 1s');
 grid on;
-legend;
 
-% Tracé des positions estimées en 3D à l'instant 1s
+% Tracé des positions estimées en 3D à l'instant 1 seconde
 figure;
-plot3(positions0(:, 1), positions0(:, 2), positions0(:, 3), 'r-o', 'LineWidth', 2);
+plot3(positions0(:, 1), positions0(:, 2), positions0(:, 3), '-o', 'LineWidth', 1.5, 'Color', 'r');
 grid on;
 xlabel('X (m)');
 ylabel('Y (m)');
 zlabel('Z (m)');
-title('Trajectoire de l''engin sur 1s');
+title('Trajectoire 3D de l''engin sur 1s');
 
-% Affichage des trajectoires
+% Affichage des trajectoires globales (toutes les images)
 figure;
+time_global = 1:size(positions, 1);
 subplot(3, 1, 1);
-plot(1:size(positions(:, 1), 1), positions(:, 1), '-r', 'DisplayName', 'Position X');
+plot(time_global, positions(:, 1), '-r', 'LineWidth', 1.5);
 xlabel('Itération');
 ylabel('X (m)');
 title('Trajectoire - Position X');
 grid on;
-legend;
 
 subplot(3, 1, 2);
-plot(1:size(positions(:, 2), 1), positions(:, 2), '-g', 'DisplayName', 'Position Y');
+plot(time_global, positions(:, 2), '-g', 'LineWidth', 1.5);
 xlabel('Itération');
 ylabel('Y (m)');
 title('Trajectoire - Position Y');
 grid on;
-legend;
 
 subplot(3, 1, 3);
-plot(1:size(positions(:, 3), 1), positions(:, 3), '-b', 'DisplayName', 'Position Z');
+plot(time_global, positions(:, 3), '-b', 'LineWidth', 1.5);
 xlabel('Itération');
 ylabel('Z (m)');
 title('Trajectoire - Position Z');
 grid on;
-legend;
 
-% Tracé des positions estimées en 3D
+% Tracé des positions estimées en 3D pour toutes les images
 figure;
-plot3(positions(:, 1), positions(:, 2), positions(:, 3), 'r-o', 'LineWidth', 2);
+plot3(positions(:, 1), positions(:, 2), positions(:, 3), '-o', 'LineWidth', 1.5, 'Color', 'r');
 grid on;
 xlabel('X (m)');
 ylabel('Y (m)');
 zlabel('Z (m)');
-title('Trajectoire de l''engin');
+title('Trajectoire 3D de l''engin');
 
 % Tracé de l'évolution des biais
-time2 = linspace(0, num_images, num_images + 1); % Temps correspondant aux étapes
-
 figure;
-plot(time2, biais(:, 1), 'r-', 'LineWidth', 1.5);
+time2 = linspace(0, num_images, num_images + 1);
+plot(time2, biais(:, 1), '-r', 'LineWidth', 1.5, 'DisplayName', 'Biais X');
 hold on;
-plot(time2, biais(:, 2), 'g-', 'LineWidth', 1.5);
-plot(time2, biais(:, 3), 'b-', 'LineWidth', 1.5);
+plot(time2, biais(:, 2), '-g', 'LineWidth', 1.5, 'DisplayName', 'Biais Y');
+plot(time2, biais(:, 3), '-b', 'LineWidth', 1.5, 'DisplayName', 'Biais Z');
+hold off;
 grid on;
 xlabel('Temps (s)');
 ylabel('Biais (m/s²)');
 title('Évolution des biais des accéléromètres');
-legend('Biais X', 'Biais Y', 'Biais Z');
+legend();
 
-% Tracé 3D
+% Tracé des points observés et estimés dans l'espace 3D
 figure;
-scatter3(K_all, U_all, V_all, 'filled'); % Points (k, U, V)
-hold on
-scatter3(K_est, U_est, V_est, 'filled'); % Points (k, U, V)
-hold off
-legend('observée', 'estimée');
-xlabel('Indice de l''image (k)');
+scatter3(K_all, U_all, V_all, 50, 'r', 'filled', 'DisplayName', 'Observée');
+hold on;
+scatter3(K_est, U_est, V_est, 50, 'b', 'filled', 'DisplayName', 'Estimée');
+hold off;
+grid on;
+xlabel('Indice des images (k)');
 ylabel('Coordonnées U');
 zlabel('Coordonnées V');
-title('Évolution des points (U, V) en fonction des images');
-grid on;
+legend();
+title('Comparaison des points observés et estimés en 3D');
+
+% Figure pour l'étude du recalage statique
+figure;
+
+% Titre général
+sgtitle('Étude du recalage statique');
+
+% Subplot pour les erreurs avant et après recalage
+subplot(2, 1, 1);
+plot(0:num_images, erreurs_avant, '-r', 'DisplayName', 'Erreur avant recalage');
+hold on;
+plot(0:num_images, erreurs_apres, '-b', 'DisplayName', 'Erreur après recalage');
+hold off;
+xlabel('Indice des images');
+ylabel('Erreur moyenne (pixels)');
+legend();
+title('Évolution des erreurs avant et après recalage');
+
+% Subplots pour les positions X, Y, Z
+subplot(2, 3, 4); % Position dans une grille 2x3
+plot(0:num_images, positions_avant(:, 1), '-r', 'DisplayName', 'X Avant');
+hold on;
+plot(0:num_images, positions_apres(:, 1), '-b', 'DisplayName', 'X Après');
+hold off;
+xlabel('Indice des images');
+ylabel('Position X (m)');
+legend();
+title('Position X');
+
+subplot(2, 3, 5); % Position dans une grille 2x3
+plot(0:num_images, positions_avant(:, 2), '-r', 'DisplayName', 'Y Avant');
+hold on;
+plot(0:num_images, positions_apres(:, 2), '-b', 'DisplayName', 'Y Après');
+hold off;
+xlabel('Indice des images');
+ylabel('Position Y (m)');
+legend();
+title('Position Y');
+
+subplot(2, 3, 6); % Position dans une grille 2x3
+plot(0:num_images, positions_avant(:, 3), '-r', 'DisplayName', 'Z Avant');
+hold on;
+plot(0:num_images, positions_apres(:, 3), '-b', 'DisplayName', 'Z Après');
+hold off;
+xlabel('Indice des images');
+ylabel('Position Z (m)');
+legend();
+title('Position Z');
